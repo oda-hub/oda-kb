@@ -63,9 +63,10 @@ def query(query, prefixes=None, debug=True):
                    params=dict(query=_query)
                 )
 
-
     print(r)
     print(r.text)
+
+    return r.json()
 
 #create()
 
