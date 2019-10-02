@@ -16,19 +16,30 @@ def get_minio():
               secret_key=open(os.environ.get('HOME')+"/.minio").read().strip(),
               secure=False)
 
-def load(bucket):
+def restore(bucket):
     client = get_minio()
     try:
-        result = client.get_object(bucket, 'result')
-        inputs = client.get_object(bucket, 'inputs')
+        data = client.get_object(bucket, 'data')
         meta = json.loads(client.get_object(bucket, 'meta').read())
     except Exception as e:
         raise
 
-    return result, meta['cwl']
+    return json.load(data)
 
+def store(data, meta=None, bucket_name = None):
+    data_json = json.dumps(data)
 
-def store(meta, data_json, bucket_name):
+        
+
+    if bucket_name is None:
+        if meta is None:
+            bucket_name = form_bucket_name(data)
+        else:
+            bucket_name = form_bucket_name(meta)
+    
+    if meta is None:
+        meta = {}
+
     client = get_minio()
 
     try:
@@ -55,12 +66,13 @@ def store(meta, data_json, bucket_name):
     else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
         try:
-             print(client.put_object(bucket_name, 'result', io.BytesIO(result_json.encode()), len(result_json)))
-             print(client.put_object(bucket_name, 'inputs', io.BytesIO(json.dumps(inputs).encode()), len(json.dumps(inputs))))
+             print(client.put_object(bucket_name, 'data', io.BytesIO(data_json.encode()), len(data_json)))
              print(client.put_object(bucket_name, 'meta', io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
              print("stored")
         except ResponseError as err:
              print(err)
+
+    return bucket_name
 
 
 def form_bucket_name(data):
