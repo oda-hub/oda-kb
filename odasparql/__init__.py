@@ -1,63 +1,43 @@
 import requests
+import copy
 import os
 
+default_prefixes=[
+    "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
+    "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
+    "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
+    "PREFIX da: <https://www.wowman.org/index.php?id=1&type=get#>",
+    "PREFIX dda: <http://ddahub.io/ontology/analysis#>",
+    "PREFIX tns: <http://odahub.io/ontology/tns#>",
+]
 
-def create():
+def compose_sparql(body, prefixes=None):
+    _prefixes = copy.deepcopy(default_prefixes)
+    if prefixes is not None:
+        _prefixes += prefixes
+
+    return "\n".join(_prefixes)+"\n\n"+body
+
+def create(entries, prefixes=None, debug=True):
+    data = compose_sparql("INSERT DATA {" + ("\n".join(["%s %s %s"%t3 for t3 in entries])) + "}", prefixes)
+
+    if debug:
+        print("data:", data)
+
     r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/update',
-                   data='''PREFIX owl: <http://www.w3.org/2002/07/owl#>
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    PREFIX da: <https://www.wowman.org/index.php?id=1&type=get#>
-    prefix dda: <http://ddahub.io/ontology/analysis#>
-
-    INSERT DATA
-    { 
-      dda:planning_advice dda:describes "planning"                       
-    }''',
+                   data=data,
         auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
     )
-
-
-    print(r)
-
-    print(r.text)
-
-def get_planning():
-    r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/query',
-                   params=dict(query='''PREFIX owl: <http://www.w3.org/2002/07/owl#>
-    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    prefix dda: <http://ddahub.io/ontology/analysis#>
-
-    SELECT ?s where
-    { 
-      ?s dda:describes "planning"                       
-    }''')
-    )
-
 
     print(r)
     print(r.text)
 
 
 def query(query, prefixes=None, debug=True):
-    default_prefixes=[
-        "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
-        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
-        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
-        "prefix dda: <http://ddahub.io/ontology/analysis#>",
-    ]
-
-    _prefixes = default_prefixes
-
-    if prefixes is not None:
-        _prefixes += prefixes
-        
-
-    _query = "\n".join(_prefixes) + "\n\n" + query
+    _query = compose_sparql(query)
 
     if debug:
-        print("sending:\n", _query)
+        print("sending queru:\n", _query)
 
     r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/query',
                    params=dict(query=_query)
@@ -68,8 +48,10 @@ def query(query, prefixes=None, debug=True):
 
     return r.json()
 
-#create()
-
 if __name__ == "__main__":
-    get_planning()
-
+    query("""
+    SELECT ?s where
+    { 
+      ?s dda:describes "planning"                       
+    }
+    """)
