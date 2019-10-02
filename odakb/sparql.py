@@ -19,8 +19,8 @@ def compose_sparql(body, prefixes=None):
 
     return "\n".join(_prefixes)+"\n\n"+body
 
-def create(entries, prefixes=None, debug=True):
-    data = compose_sparql("INSERT DATA {" + ("\n".join(["%s %s %s"%t3 for t3 in entries])) + "}", prefixes)
+def update(query, prefixes=None, debug=True):
+    data = compose_sparql(query, prefixes)
 
     if debug:
         print("data:", data)
@@ -32,6 +32,9 @@ def create(entries, prefixes=None, debug=True):
 
     print(r)
     print(r.text)
+
+def create(entries, prefixes=None, debug=True):
+    return update("INSERT DATA {" + ("\n".join(["%s %s %s"%t3 for t3 in entries])) + "}", prefixes)
 
 
 def query(query, prefixes=None, debug=True):
