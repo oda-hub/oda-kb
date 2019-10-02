@@ -8,6 +8,7 @@ default_prefixes=[
     "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
     "PREFIX da: <https://www.wowman.org/index.php?id=1&type=get#>",
     "PREFIX dda: <http://ddahub.io/ontology/analysis#>",
+    "PREFIX data: <http://ddahub.io/ontology/data#>",
     "PREFIX tns: <http://odahub.io/ontology/tns#>",
 ]
 
