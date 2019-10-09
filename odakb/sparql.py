@@ -35,7 +35,7 @@ def update(query, prefixes=None, debug=True):
     print(r.text)
 
 def create(entries, prefixes=None, debug=True):
-    return update("INSERT DATA {" + ("\n".join(["%s %s %s"%t3 for t3 in entries])) + "}", prefixes)
+    return update("INSERT DATA {" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "}", prefixes)
 
 
 def query(query, prefixes=None, debug=True):
