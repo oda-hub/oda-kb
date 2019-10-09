@@ -10,6 +10,7 @@ default_prefixes=[
     "PREFIX dda: <http://ddahub.io/ontology/analysis#>",
     "PREFIX data: <http://ddahub.io/ontology/data#>",
     "PREFIX tns: <http://odahub.io/ontology/tns#>",
+    "PREFIX oda: <http://odahub.io/ontology#>",
 ]
 
 def compose_sparql(body, prefixes=None):
