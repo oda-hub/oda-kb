@@ -13,6 +13,9 @@ default_prefixes=[
     "PREFIX oda: <http://odahub.io/ontology#>",
 ]
 
+class SPARQLException(Exception):
+    pass
+
 def compose_sparql(body, prefixes=None):
     _prefixes = copy.deepcopy(default_prefixes)
     if prefixes is not None:
@@ -20,7 +23,7 @@ def compose_sparql(body, prefixes=None):
 
     return "\n".join(_prefixes)+"\n\n"+body
 
-def update(query, prefixes=None, debug=True):
+def update(query, prefixes=None, debug=True, invalid_raise=True):
     data = compose_sparql(query, prefixes)
 
     if debug:
@@ -33,12 +36,15 @@ def update(query, prefixes=None, debug=True):
 
     print(r)
     print(r.text)
+    
+    if r.status_code not in [200, 201, 204]:
+        raise SPARQLException(r.status_code, r.text)
 
 def create(entries, prefixes=None, debug=True):
     return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}", prefixes)
 
 
-def query(query, prefixes=None, debug=True):
+def query(query, prefixes=None, debug=True, invalid_raise=True):
     _query = compose_sparql(query)
 
     if debug:
@@ -50,6 +56,9 @@ def query(query, prefixes=None, debug=True):
 
     print(r)
     print(r.text)
+
+    if r.status_code not in [200, 201, 204]:
+        raise SPARQLException(r.status_code, r.text)
 
     return r.json()
 
