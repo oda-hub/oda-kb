@@ -2,6 +2,7 @@ import requests
 import copy
 import os
 
+
 default_prefixes=[
     "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
     "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
@@ -13,6 +14,8 @@ default_prefixes=[
     "PREFIX oda: <http://odahub.io/ontology#>",
 ]
 
+query_stats = None
+
 class SPARQLException(Exception):
     pass
 
@@ -23,44 +26,53 @@ def compose_sparql(body, prefixes=None):
 
     return "\n".join(_prefixes)+"\n\n"+body
 
+
+def execute_sparql(data, endpoint, debug, invalid_raise):
+    if debug:
+        print("data:", data)
+        
+    if endpoint == "update":    
+        auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
+    else:
+        auth=None
+
+    if endpoint == "update":    
+        r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/'+endpoint,
+                        data=data,
+                        auth=auth
+                        )
+    else:
+        r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/'+endpoint,
+                       params=dict(query=data)
+                    )
+    
+    if debug:
+        print(r)
+        print(r.text)
+
+    
+    if invalid_raise:
+        if r.status_code not in [200, 201, 204]:
+            raise SPARQLException(r.status_code, r.text)
+
+    try:
+        return r.json()
+    except:
+        return {'problem-decoding': r.text}
+
 def update(query, prefixes=None, debug=True, invalid_raise=True):
     data = compose_sparql(query, prefixes)
 
-    if debug:
-        print("data:", data)
-
-    r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/update',
-                   data=data,
-        auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
-    )
-
-    print(r)
-    print(r.text)
-    
-    if r.status_code not in [200, 201, 204]:
-        raise SPARQLException(r.status_code, r.text)
+    return execute_sparql(data, 'update', debug=debug, invalid_raise=invalid_raise)
 
 def create(entries, prefixes=None, debug=True):
     return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}", prefixes)
 
 
 def query(query, prefixes=None, debug=True, invalid_raise=True):
-    _query = compose_sparql(query)
+    data = compose_sparql(query, prefixes)
 
-    if debug:
-        print("sending queru:\n", _query)
-
-    r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/query',
-                   params=dict(query=_query)
-                )
-
-    print(r)
-    print(r.text)
-
-    if r.status_code not in [200, 201, 204]:
-        raise SPARQLException(r.status_code, r.text)
-
-    return r.json()
+    return execute_sparql(data, 'query',  debug=debug, invalid_raise=invalid_raise)
 
 if __name__ == "__main__":
     query("""
