@@ -37,6 +37,11 @@ def evaluate(query):
             
                 d = nba.nbrun(nbname, {})
 
+                for k, v in d.items():
+                    try:
+                        d[k] = yaml.load(v)
+                    except: pass
+
                 try:
                     os.makedirs("data")
                 except:
