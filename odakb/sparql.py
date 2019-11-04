@@ -1,8 +1,13 @@
-import requests
 import copy
 import os
-
+import sys
 import time
+
+import requests
+
+import keyring
+import click
+
 
 
 default_prefixes=[
@@ -14,9 +19,21 @@ default_prefixes=[
     "PREFIX data: <http://ddahub.io/ontology/data#>",
     "PREFIX tns: <http://odahub.io/ontology/tns#>",
     "PREFIX oda: <http://odahub.io/ontology#>",
+    "PREFIX foaf: <http://xmlns.com/foaf/0.1/>"
 ]
 
 query_stats = None
+
+def unclick(f):
+    """aliases function as _function without click's decorators"""
+    if f.__name__.startswith('_'):
+        setattr(sys.modules[f.__module__], f.__name__[1:], f)
+    return f
+
+
+@click.group()
+def cli():
+    pass
 
 def start_stats_collection():
     query_stats=[]
@@ -58,7 +75,8 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
         print("data:", data)
         
     if endpoint == "update":    
-        auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
+        auth=requests.auth.HTTPBasicAuth("admin", 
+                                         keyring.get_password("jena", "admin"))
     else:
         auth=None
 
@@ -90,24 +108,37 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
     except:
         return {'problem-decoding': r.text}
 
-def update(query, prefixes=None, debug=True, invalid_raise=True):
+@cli.command("update")
+@click.argument("query")
+@unclick
+def _update(query, prefixes=None, debug=True, invalid_raise=True):
     data = compose_sparql(query, prefixes)
 
     return execute_sparql(data, 'update', debug=debug, invalid_raise=invalid_raise)
 
+@cli.command("insert")
+@click.argument("query")
+@click.pass_context
+@unclick
+def _insert(ctx=None, query=None, prefixes=None, debug=True):
+    return ctx.invoke(update, query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
+
 def create(entries, prefixes=None, debug=True):
     return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}", prefixes)
-
 
 def query(query, prefixes=None, debug=True, invalid_raise=True):
     data = compose_sparql(query, prefixes)
 
     return execute_sparql(data, 'query',  debug=debug, invalid_raise=invalid_raise)
 
+@cli.command("select")
+@click.argument("query")
+@click.pass_context
+@unclick
+def _select(ctx=None, query=None, prefixes=None, debug=True):
+    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
+
+    return execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+
 if __name__ == "__main__":
-    query("""
-    SELECT ?s where
-    { 
-      ?s dda:describes "planning"                       
-    }
-    """)
+    cli()
