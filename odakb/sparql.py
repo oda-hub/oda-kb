@@ -24,6 +24,7 @@ default_prefixes=[
 
 query_stats = None
 
+
 def unclick(f):
     """aliases function as _function without click's decorators"""
     if f.__name__.startswith('_'):
@@ -35,15 +36,21 @@ def unclick(f):
 def cli():
     pass
 
-def start_stats_collection():
+def reset_stats_collection():
+    global query_stats
     query_stats=[]
 
 def stop_stats_collection():
+    global query_stats
     query_stats=None
 
 def note_stats(**kwargs):
-    if query_stats is not None:
-        query_stats.append(kwargs)
+    global query_stats
+
+    if query_stats is None:
+        query_stats = []
+
+    query_stats.append(kwargs)
 
 def report_stats():
     print(query_stats)
@@ -56,8 +63,6 @@ def report_stats():
         )
 
         return summary
-
-start_stats_collection()
 
 class SPARQLException(Exception):
     pass
@@ -97,6 +102,8 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
     if debug:
         print(r)
         print(r.text)
+
+        print(report_stats())
 
     
     if invalid_raise:
