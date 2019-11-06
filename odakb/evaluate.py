@@ -1,6 +1,8 @@
 import os
+import io
 import glob
 import yaml
+import hashlib
 
 import nb2workflow.nbadapter as nba
 
@@ -16,8 +18,10 @@ def build_local_context():
     return context
 
 
-def evaluate(query):
+def evaluate(query, *subqueries, **kwargs):
     context = build_local_context()
+
+    # construct kwargs from sub queries
 
     if query.startswith("http://"):
         if query in context:
@@ -25,7 +29,11 @@ def evaluate(query):
         
             print("will evaluate with local context", context[query])
 
-            fn = "data/{}.yaml".format(query_alias)
+            s=io.StringIO()
+            yaml.dump(kwargs, s)
+            qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
+
+            fn = "data/{}-{}.yaml".format(query_alias, qc)
 
             if os.path.exists(fn):
                 d=yaml.load(open(fn))
@@ -35,7 +43,7 @@ def evaluate(query):
                 assert len(nbnames) == 1
                 nbname = nbnames[0]
             
-                d = nba.nbrun(nbname, {})
+                d = nba.nbrun(nbname, kwargs)
 
                 for k, v in d.items():
                     try:
