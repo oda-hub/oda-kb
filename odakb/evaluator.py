@@ -11,6 +11,11 @@ import odakb.sparql as sp
 
 import nb2workflow.nbadapter as nba
 
+def git_get_url(d):
+    #git config remote.origin.url
+ #   return subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=d).decode().strip()
+    return subprocess.check_output(["git", "config", "remote.origin.url"], cwd=d).decode().strip()
+
 def build_local_context():
     context = {}
 
@@ -30,7 +35,7 @@ def build_local_context():
         print("running in", context[y['uri_base']]['path'])
     
         context[y['uri_base']]['version']=subprocess.check_output(["git", "describe", "--always", "--tags", "--dirty"], cwd=context[y['uri_base']]['path']).decode().strip()
-        context[y['uri_base']]['origin'] = subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=context[y['uri_base']]['path']).decode().strip()
+        context[y['uri_base']]['origin'] = git_get_url(context[y['uri_base']]['path'])
 
         context[context[y['uri_base']]['origin']] = context[y['uri_base']]
 
@@ -115,7 +120,7 @@ def resolve_callable(query):
 
 def fetch_origins(origins, query):
     try:
-        base_dir_origin = subprocess.check_output(["git", "remote", "get-url", "origin"]).decode().strip()
+        base_dir_origin = git_get_url(None)
     except:
         base_dir_origin  = None
 
