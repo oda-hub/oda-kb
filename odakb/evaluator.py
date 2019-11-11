@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import io
 import glob
@@ -8,8 +9,12 @@ import hashlib
 import subprocess
 import re
 import odakb.sparql as sp
+import odakb.datalake as dl
 
 import nb2workflow.nbadapter as nba
+
+def to_bucket_name(n):
+    re.sub("\.+", ".", n)[:63]
 
 def git_get_url(d):
     #git config remote.origin.url
@@ -46,20 +51,22 @@ def build_local_context():
 
     return context
 
-
-def evaluate_local(query, kwargs, context):
-    query_alias = query.replace("http://","").replace("/",".") 
-
-
-    print("will evaluate with local context", context[query])
-
+def unique_name(query, kwargs, context):
     s=io.StringIO()
     yaml.dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
     
+    query_alias = query.replace("http://","").replace("/",".") 
+
+    return "{}-{}-{}".format(query_alias, qc, context[query]['version'])
+    
+
+def evaluate_local(query, kwargs, context):
+    print("will evaluate with local context", context[query])
+
     nbname_key = kwargs.pop('nbname', 'default')
 
-    fn = "data/{}-{}-{}.yaml".format(query_alias, qc, context[query]['version'])
+    fn = "data/{}.yaml".format(unique_name(query, kwargs, context))
 
     if os.path.exists(fn):
         d=yaml.load(open(fn))
@@ -163,16 +170,29 @@ def _evaluate(query, *subqueries, **kwargs):
 
     context = build_local_context()
 
-    # construct kwargs from sub queries
+    metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
+    uname = to_bucket_name(unique_name(query, kwargs, context))
+    
+    try:
+        dl.restore(uname)
+    except Exception as e:
+        print("unable to get the bucket:", e)
 
+    # TODO: need construct kwargs from sub queries
+
+    d = None
     if query.startswith("http://") or query.startswith("https://")  or query.startswith("git@"):
         if query in context:
             d = evaluate_local(query, kwargs, context)
-            return d
         else:
             raise Exception("unable to find query:",query, "have:",context.keys())
-    
-    raise Exception("unable to interpret query")
+
+    if d is None:
+        raise Exception("unable to interpret query")
+
+    dl.store(d, metadata, uname)
+
+    return d
 
             
 
