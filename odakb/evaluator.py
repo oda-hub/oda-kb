@@ -100,7 +100,7 @@ def evaluate_local(query, kwargs, context):
     return d
 
 def resolve_callable(query):
-    if query.startswith("https://gitlab"):
+    if query.startswith("https://gitlab") or query.startswith("git@gitlab"):
         print("direct query to gitlab")
         return "http://odahub.io/callable/notebook", [query]
 
