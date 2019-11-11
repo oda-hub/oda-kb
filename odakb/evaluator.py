@@ -142,11 +142,12 @@ def fetch_origins(origins, query):
             try:
                 subprocess.check_call(["git", "pull"],cwd=local_copy)
                 return
-            except: 
+            except Exception as e: 
+                print("git pull failed in",local_copy,"exception:", e)
                 continue
 
         return 
-    raise Exception("fetching failed")
+    raise Exception("fetching failed, origins: %s"%str(origins))
 
 @click.command()
 @click.argument("query")
