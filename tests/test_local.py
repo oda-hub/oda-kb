@@ -69,3 +69,13 @@ def test_local_gitlab_mulitnb_fail():
         raise Exception("this did not fail")
 
 
+def test_local_gitlab_mulitnb_ssh():
+    from odakb import evaluate
+
+    from path import Path
+
+    d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow-2nb.git", nbname="test2")
+
+    print(d)
+
+    assert d

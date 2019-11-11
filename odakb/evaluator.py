@@ -164,7 +164,7 @@ def _evaluate(query, *subqueries, **kwargs):
 
     # construct kwargs from sub queries
 
-    if query.startswith("http://") or query.startswith("https://"):
+    if query.startswith("http://") or query.startswith("https://")  or query.startswith("git@"):
         if query in context:
             d = evaluate_local(query, kwargs, context)
             return d
