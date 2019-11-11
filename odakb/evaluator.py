@@ -45,11 +45,14 @@ def build_local_context():
 def evaluate_local(query, kwargs, context):
     query_alias = query.replace("http://","").replace("/",".") 
 
+
     print("will evaluate with local context", context[query])
 
     s=io.StringIO()
     yaml.dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
+    
+    nbname_key = kwargs.pop('nbname', 'default')
 
     fn = "data/{}-{}-{}.yaml".format(query_alias, qc, context[query]['version'])
 
@@ -58,12 +61,19 @@ def evaluate_local(query, kwargs, context):
 
     else:
         if context[query]['path'] is None:
-            nbnames = glob.glob("*ipynb")
+            nbdir = "./"
         else:
-            nbnames = glob.glob(context[query]['path']+"/*ipynb")
+            nbdir = context[query]['path']
 
-        assert len(nbnames) == 1
-        nbname = nbnames[0]
+        nbnames = glob.glob(nbdir+"/*ipynb")
+
+        print("nbnames:", nbnames)
+        
+        if nbname_key == "default":
+            assert len(nbnames) == 1
+            nbname = nbnames[0]
+        else:
+            nbname = nbdir + "/" + nbname_key + ".ipynb"
     
         print("nbrun with",nbname, kwargs)
         d = nba.nbrun(nbname, kwargs)
@@ -87,7 +97,7 @@ def evaluate_local(query, kwargs, context):
 def resolve_callable(query):
     if query.startswith("https://gitlab"):
         print("direct query to gitlab")
-        return ["http://odahub.io/callable/notebook"], query
+        return "http://odahub.io/callable/notebook", [query]
 
     r=sp.select(None, "<%s> oda:callableKind ?kind ."%query)
     print(r)
