@@ -160,6 +160,8 @@ def fetch_origins(origins, query):
 @click.argument("query")
 @sp.unclick
 def _evaluate(query, *subqueries, **kwargs):
+    cached = kwargs.pop('cached', True)
+
     callable_kind, origins = resolve_callable(query)       
 
     # may also call CWL; verify that CWL is runnable in this container
@@ -173,10 +175,11 @@ def _evaluate(query, *subqueries, **kwargs):
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
     
-    try:
-        dl.restore(uname)
-    except Exception as e:
-        print("unable to get the bucket:", e)
+    if cached:
+        try:
+            return dl.restore(uname)
+        except Exception as e:
+            print("unable to get the bucket:", e)
 
     # TODO: need construct kwargs from sub queries
 
@@ -190,7 +193,10 @@ def _evaluate(query, *subqueries, **kwargs):
     if d is None:
         raise Exception("unable to interpret query")
 
-    dl.store(d, metadata, uname)
+    try:
+        dl.store(d, metadata, uname)
+    except Exception as e:
+        print("problem storing to the datalake", e)
 
     return d
 
