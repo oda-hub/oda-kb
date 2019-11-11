@@ -6,6 +6,7 @@ import glob
 import click
 import yaml
 import hashlib
+import traceback
 import subprocess
 import re
 import odakb.sparql as sp
@@ -14,7 +15,16 @@ import odakb.datalake as dl
 import nb2workflow.nbadapter as nba
 
 def to_bucket_name(n):
-    re.sub("\.+", ".", n)[:63]
+    bn = re.sub(r'-+', "-", re.sub(r'\W', "-", n))
+
+    if len(bn)>63:
+        bn = bn.replace('gitlab.astro.unige.ch', 'gitlab')
+    
+    if len(bn)>63:
+        bn = hashlib.sha256(bn.encode()).hexdigest()[:8] + "-" + bn[(63-8-1):]
+
+    return bn
+
 
 def git_get_url(d):
     #git config remote.origin.url
@@ -29,7 +39,7 @@ def build_local_context():
         if not os.path.exists(oda_yaml): continue
 
         y = yaml.load(open(oda_yaml))
-        print("loading oda yaml", oda_yaml, y)
+        print("context: loading oda yaml", oda_yaml, y)
         context[y['uri_base']] = dict()
 
         if oda_yaml == "oda.yaml":
@@ -37,8 +47,6 @@ def build_local_context():
         else:
             context[y['uri_base']]['path']=os.path.dirname(oda_yaml)
 
-        print("running in", context[y['uri_base']]['path'])
-    
         context[y['uri_base']]['version']=subprocess.check_output(["git", "describe", "--always", "--tags", "--dirty"], cwd=context[y['uri_base']]['path']).decode().strip()
         context[y['uri_base']]['origin'] = git_get_url(context[y['uri_base']]['path'])
 
@@ -160,7 +168,7 @@ def fetch_origins(origins, query):
 @click.argument("query")
 @sp.unclick
 def _evaluate(query, *subqueries, **kwargs):
-    cached = kwargs.pop('cached', True)
+    cached = kwargs.pop('_cached', True)
 
     callable_kind, origins = resolve_callable(query)       
 
@@ -174,11 +182,16 @@ def _evaluate(query, *subqueries, **kwargs):
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
+
+    
     
     if cached:
         try:
-            return dl.restore(uname)
+            d = dl.restore(uname)
+            print("got from bucket", uname)
+            return d
         except Exception as e:
+            traceback.print_exc()
             print("unable to get the bucket:", e)
 
     # TODO: need construct kwargs from sub queries

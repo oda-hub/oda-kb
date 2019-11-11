@@ -61,7 +61,7 @@ def test_local_gitlab_mulitnb_fail():
     from path import Path
 
     try:
-        d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow-2nb.git")
+        d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow-2nb.git", _cached=False)
         print(d)
     except:
         pass
@@ -74,7 +74,7 @@ def test_local_gitlab_mulitnb_ssh():
 
     from path import Path
 
-    d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow-2nb.git", nbname="test2")
+    d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow-2nb.git", nbname="test2", _cached=False)
 
     print(d)
 
