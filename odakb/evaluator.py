@@ -15,11 +15,27 @@ def build_local_context():
     context = {}
 
     # also deduce from gitlhub reference
-    for oda_yaml in glob.glob("code/*/oda.yaml"):
+    for oda_yaml in ["oda.yaml"] + glob.glob("code/*/oda.yaml"):
+        if not os.path.exists(oda_yaml): continue
+
         y = yaml.load(open(oda_yaml))
         print("loading oda yaml", oda_yaml, y)
-        context[y['uri_base']] = dict(path=os.path.dirname(oda_yaml))
+        context[y['uri_base']] = dict()
+
+        if oda_yaml == "oda.yaml":
+            context[y['uri_base']]['path']=None
+        else:
+            context[y['uri_base']]['path']=os.path.dirname(oda_yaml)
+
+        print("running in", context[y['uri_base']]['path'])
+    
         context[y['uri_base']]['version']=subprocess.check_output(["git", "describe", "--always", "--tags", "--dirty"], cwd=context[y['uri_base']]['path']).decode().strip()
+        context[y['uri_base']]['origin'] = subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=context[y['uri_base']]['path']).decode().strip()
+
+        context[context[y['uri_base']]['origin']] = context[y['uri_base']]
+
+
+        
 
     yaml.dump(context, open("context.yaml", "w"))
 
@@ -41,7 +57,11 @@ def evaluate_local(query, kwargs, context):
         d=yaml.load(open(fn))
 
     else:
-        nbnames = glob.glob(context[query]['path'])
+        if context[query]['path'] is None:
+            nbnames = glob.glob("*ipynb")
+        else:
+            nbnames = glob.glob(context[query]['path']+"/*ipynb")
+
         assert len(nbnames) == 1
         nbname = nbnames[0]
     
@@ -65,6 +85,10 @@ def evaluate_local(query, kwargs, context):
     return d
 
 def resolve_callable(query):
+    if query.startswith("https://gitlab"):
+        print("direct query to gitlab")
+        return ["http://odahub.io/callable/notebook"], query
+
     r=sp.select(None, "<%s> oda:callableKind ?kind ."%query)
     print(r)
     
@@ -79,23 +103,32 @@ def resolve_callable(query):
     
     return callable_kind, [l['location']['value'] for l in locations]
 
-def fetch_location(locations, query):
-    for location in locations:
-        local_location = os.path.join("code",
-                                      re.sub("[:/]", ".", 
-                                      re.sub("^https?://", "", query))
-                                    )
+def fetch_origins(origins, query):
+    try:
+        base_dir_origin = subprocess.check_output(["git", "remote", "get-url", "origin"]).decode().strip()
+    except:
+        base_dir_origin  = None
 
-        try:
-            subprocess.check_call(["git", "clone", location, local_location])
-            return
-        except: pass
+    for origin in origins:
 
-        try:
-            subprocess.check_call(["git", "pull"],cwd=local_location)
-            return
-        except: 
-            continue
+        if origin == base_dir_origin:
+            local_copy = None
+        else:
+            local_copy = os.path.join("code",
+                                          re.sub("[:/]", ".", 
+                                          re.sub("^https?://", "", query))
+                                        )
+
+            try:
+                subprocess.check_call(["git", "clone", origin, local_copy])
+                return
+            except: pass
+
+            try:
+                subprocess.check_call(["git", "pull"],cwd=local_copy)
+                return
+            except: 
+                continue
 
         return 
     raise Exception("fetching failed")
@@ -104,22 +137,24 @@ def fetch_location(locations, query):
 @click.argument("query")
 @sp.unclick
 def _evaluate(query, *subqueries, **kwargs):
-    callable_kind, locations = resolve_callable(query)       
+    callable_kind, origins = resolve_callable(query)       
 
     # may also call CWL; verify that CWL is runnable in this container
 
     print("assuming this container is compliant with", query)
-
-    fetch_location(locations, query)
+    
+    fetch_origins(origins, query)
 
     context = build_local_context()
 
     # construct kwargs from sub queries
 
-    if query.startswith("http://"):
+    if query.startswith("http://") or query.startswith("https://"):
         if query in context:
             d = evaluate_local(query, kwargs, context)
             return d
+        else:
+            raise Exception("unable to find query:",query, "have:",context.keys())
     
     raise Exception("unable to interpret query")
 
