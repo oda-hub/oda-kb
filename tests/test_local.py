@@ -79,3 +79,7 @@ def test_local_gitlab_mulitnb_ssh():
     print(d)
 
     assert d
+
+def test_git4ci():
+    from odakb import evaluator as ev 
+    assert ev.git4ci("git@gitlab.astro.unige.ch:integral/cc-workflows/cc-herx1.git") == "https://gitlab-ci-token:REDACTED@gitlab.astro.unige.ch/integral/cc-workflows/cc-herx1.git"

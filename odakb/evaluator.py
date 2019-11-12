@@ -138,7 +138,7 @@ def git4ci(origin):
         origin = origin.replace(":","/").replace("git@","https://")
 
     if origin.startswith("https://"):
-        origin = origin.replace("https://","https://gitlab-ci-token:{}@".format(os.environment.get('CI_JOB_TOKEN'),''))
+        origin = origin.replace("https://","https://gitlab-ci-token:{}@".format(os.environ.get('CI_JOB_TOKEN','REDACTED')))
 
     return origin
 
