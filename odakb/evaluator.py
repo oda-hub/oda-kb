@@ -133,6 +133,15 @@ def resolve_callable(query):
     
     return callable_kind, [l['location']['value'] for l in locations]
 
+def git4ci(origin):
+    if origin.startswith("git@"):
+        origin = origin.replace("git@","https://").replace(":","/")
+
+    if origin.startswith("https://"):
+        origin = origin.replace("https://","https://gitlab-ci-token:{}@".format(os.environment.get('CI_JOB_TOKEN'),''))
+
+    return origin
+
 def fetch_origins(origins, query):
     try:
         base_dir_origin = git_get_url(None)
@@ -150,7 +159,14 @@ def fetch_origins(origins, query):
                                         )
 
             try:
+                print("trying to clone", git4ci(origin))
                 subprocess.check_call(["git", "clone", origin, local_copy])
+                return
+            except: pass
+
+            try:
+                print("trying to clone alternative", git4ci(origin))
+                subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
                 return
             except: pass
 
