@@ -159,15 +159,17 @@ def fetch_origins(origins, query):
                                         )
 
             try:
-                print("trying to clone", git4ci(origin))
+                print("trying to clone", origin)
                 subprocess.check_call(["git", "clone", origin, local_copy])
-                return
+                print("clonned succesfully!")
+                return origin
             except: pass
 
             try:
                 print("trying to clone alternative", git4ci(origin))
                 subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
-                return
+                print("clonned succesfully!")
+                return git4ci(origin)
             except: pass
 
             try:
@@ -192,9 +194,12 @@ def _evaluate(query, *subqueries, **kwargs):
 
     print("assuming this container is compliant with", query)
     
-    fetch_origins(origins, query)
+    query_fetched_origin = fetch_origins(origins, query)
 
     context = build_local_context()
+
+    if query_fetched_origin in context and query not in context:
+        context[query_fetched_origin] = context[query]
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
