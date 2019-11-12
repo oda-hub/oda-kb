@@ -57,8 +57,9 @@ def report_stats():
 
     if query_stats is not None:
         summary=dict(
-            queries=query_stats,
+            n_queries=len(query_stats),
             spent_seconds=sum([s['spent_seconds'] for s in query_stats]),
+            spent_longest_seconds=max([s['spent_seconds'] for s in query_stats]),
             query_size=sum([s['spent_seconds'] for s in query_stats]),
         )
 
