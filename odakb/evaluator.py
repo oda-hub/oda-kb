@@ -196,7 +196,11 @@ def _evaluate(query, *subqueries, **kwargs):
     
     query_fetched_origin = fetch_origins(origins, query)
 
+    print("fetched origin for query", query, "is", query_fetched_origin)
+
     context = build_local_context()
+
+    print("got context for", context.keys())
 
     if query_fetched_origin in context and query not in context:
         context[query_fetched_origin] = context[query]
