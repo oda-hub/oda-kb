@@ -203,7 +203,7 @@ def _evaluate(query, *subqueries, **kwargs):
     print("got context for", context.keys())
 
     if query_fetched_origin in context and query not in context:
-        context[query_fetched_origin] = context[query]
+        context[query] = context[query_fetched_origin]
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
