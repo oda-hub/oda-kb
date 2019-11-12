@@ -135,7 +135,7 @@ def resolve_callable(query):
 
 def git4ci(origin):
     if origin.startswith("git@"):
-        origin = origin.replace("git@","https://").replace(":","/")
+        origin = origin.replace(":","/").replace("git@","https://")
 
     if origin.startswith("https://"):
         origin = origin.replace("https://","https://gitlab-ci-token:{}@".format(os.environment.get('CI_JOB_TOKEN'),''))
