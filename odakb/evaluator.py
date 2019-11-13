@@ -172,7 +172,7 @@ def fetch_origins(origins, query):
                 print("trying to clone alternative", git4ci(origin))
                 subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
                 print("clonned succesfully!")
-                return origin, [query, origin, git4ci(origin)]
+                return git4ci(origin), [query, origin, git4ci(origin)]
             except: pass
 
             try:
