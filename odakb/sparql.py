@@ -2,7 +2,7 @@ import copy
 import os
 import sys
 import time
-
+import pkg_resources
 import requests
 
 import keyring
@@ -147,6 +147,10 @@ def _select(ctx=None, query=None, prefixes=None, debug=True):
     data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
 
     return execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+
+@cli.command()
+def version():
+    click.echo(pkg_resources.get_distribution("oda-knowledge-base").version)
 
 if __name__ == "__main__":
     cli()
