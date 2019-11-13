@@ -38,7 +38,7 @@ def build_local_context():
     for oda_yaml in ["oda.yaml"] + glob.glob("code/*/oda.yaml"):
         if not os.path.exists(oda_yaml): continue
 
-        y = yaml.load(open(oda_yaml))
+        y = yaml.safe_load(open(oda_yaml))
         print("context: loading oda yaml", oda_yaml, y)
         context[y['uri_base']] = dict()
 
@@ -77,7 +77,7 @@ def evaluate_local(query, kwargs, context):
     fn = "data/{}.yaml".format(unique_name(query, kwargs, context))
 
     if os.path.exists(fn):
-        d=yaml.load(open(fn))
+        d=yaml.safe_load(open(fn))
 
     else:
         if context[query]['path'] is None:
@@ -102,7 +102,7 @@ def evaluate_local(query, kwargs, context):
 
         for k, v in d.items():
             try:
-                d[k] = yaml.load(v)
+                d[k] = yaml.safe_load(v)
             except: pass
 
         try:
@@ -179,12 +179,13 @@ def fetch_origins(origins, query):
                 print("trying to pull")
                 subprocess.check_call(["git", "pull"],cwd=local_copy)
                 print("managed to  pull")
-                return origin, [query]
+                return origin, [query, origin]
             except Exception as e: 
                 print("git pull failed in",local_copy,"exception:", e)
                 continue
 
-    raise Exception("fetching failed, origins: %s"%str(origins))
+    return None, []
+
 
 @click.command()
 @click.argument("query")
