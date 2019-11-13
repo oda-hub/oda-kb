@@ -172,7 +172,7 @@ def fetch_origins(origins, query):
                 print("trying to clone alternative", git4ci(origin))
                 subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
                 print("clonned succesfully!")
-                return origin, [query, git4ci(origin)]
+                return origin, [query, origin, git4ci(origin)]
             except: pass
 
             try:
@@ -200,7 +200,7 @@ def _evaluate(query, *subqueries, **kwargs):
     
     query_fetched_origin, query_names = fetch_origins(origins, query)
 
-    print("fetched origin for query", query, "is", query_fetched_origin)
+    print("fetched origin for query", query, "is", query_fetched_origin, "all query names", query_names)
 
     context = build_local_context()
 
