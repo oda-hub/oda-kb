@@ -148,10 +148,13 @@ def fetch_origins(origins, query):
     except:
         base_dir_origin  = None
 
+    print("fetch origins", origins, "query:", query, "base dir query:", base_dir_origin)
+
     for origin in origins:
 
         if origin == base_dir_origin:
             local_copy = None
+            return origin
         else:
             local_copy = os.path.join("code",
                                           re.sub("[:/]", ".", 
@@ -162,24 +165,25 @@ def fetch_origins(origins, query):
                 print("trying to clone", origin)
                 subprocess.check_call(["git", "clone", origin, local_copy])
                 print("clonned succesfully!")
-                return origin
+                return [origin]
             except: pass
 
             try:
                 print("trying to clone alternative", git4ci(origin))
                 subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
                 print("clonned succesfully!")
-                return git4ci(origin)
+                return [origin, git4ci(origin)]
             except: pass
 
             try:
+                print("trying to pull")
                 subprocess.check_call(["git", "pull"],cwd=local_copy)
-                return
+                print("managed to  pull")
+                return [origin]
             except Exception as e: 
                 print("git pull failed in",local_copy,"exception:", e)
                 continue
 
-        return 
     raise Exception("fetching failed, origins: %s"%str(origins))
 
 @click.command()
@@ -194,16 +198,17 @@ def _evaluate(query, *subqueries, **kwargs):
 
     print("assuming this container is compliant with", query)
     
-    query_fetched_origin = fetch_origins(origins, query)
+    query_fetched_origins = fetch_origins(origins, query)
 
-    print("fetched origin for query", query, "is", query_fetched_origin)
+    print("fetched origin for query", query, "is", query_fetched_origins)
 
     context = build_local_context()
 
     print("got context for", context.keys())
 
-    if query_fetched_origin in context and query not in context:
-        context[query] = context[query_fetched_origin]
+    for query_fetched_origin in query_fetched_origins:
+        if query_fetched_origin in context and query not in context:
+            context[query] = context[query_fetched_origin]
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
