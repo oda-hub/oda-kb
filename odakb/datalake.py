@@ -1,14 +1,21 @@
 import cwltool.factory
 import requests
+import pprint
 import os
 import json
 import io
 import ast
+import click
 import hashlib
 
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
              BucketAlreadyExists)
+
+@click.group()
+def cli():
+    pass
+
 
 def get_minio():
     return Minio('minio-internal.odahub.io',
@@ -16,7 +23,7 @@ def get_minio():
               secret_key=open(os.environ.get('HOME')+"/.minio").read().strip(),
               secure=False)
 
-def restore(bucket):
+def restore(bucket, return_metadata = False):
     client = get_minio()
     try:
         data = client.get_object(bucket, 'data')
@@ -24,7 +31,34 @@ def restore(bucket):
     except Exception as e:
         raise
 
-    return json.load(data)
+    if return_metadata:
+        return meta, json.load(data)
+    else:
+        return json.load(data)
+
+@cli.command("restore")
+@click.argument("bucket")
+def _restore(bucket):
+    m, d = restore(bucket, return_metadata=True)
+
+    click.echo(pprint.pformat(m))
+
+    for k,v in d.items():
+        if not k.endswith("_content"):
+            click.echo("{}: {}".format(k, pprint.pformat(v)))
+   
+
+@cli.command("list")
+def list_buckets():
+    client = get_minio()
+    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
+        meta = json.loads(client.get_object(bucket.name, 'meta').read())
+        click.echo("{creation_date} {source_name:>10} {bucket_name:64}".format(
+                    bucket_name=bucket.name, 
+                    creation_date=bucket.creation_date, 
+                    source_name=str(meta.get('kwargs', {}).get('source_name'))
+                   ))
+
 
 def store(data, meta=None, bucket_name = None):
     data_json = json.dumps(data)
@@ -98,3 +132,7 @@ def self_test():
     )
 
     #create_record(inputs, result_json, bucket_name)
+
+if __name__ == "__main__":
+    cli()
+
