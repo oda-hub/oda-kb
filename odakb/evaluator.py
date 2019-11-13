@@ -154,7 +154,7 @@ def fetch_origins(origins, query):
 
         if origin == base_dir_origin:
             local_copy = None
-            return origin, [query]
+            return origin, [query, origin]
         else:
             local_copy = os.path.join("code",
                                           re.sub("[:/]", ".", 
@@ -165,7 +165,7 @@ def fetch_origins(origins, query):
                 print("trying to clone", origin)
                 subprocess.check_call(["git", "clone", origin, local_copy])
                 print("clonned succesfully!")
-                return origin, [query]
+                return origin, [query, origin]
             except: pass
 
             try:
@@ -209,6 +209,8 @@ def _evaluate(query, *subqueries, **kwargs):
     if query_fetched_origin in context:
         for query_name in query_names:
             context[query_name] = context[query_fetched_origin]
+    
+    print("after aliasing got context for", context.keys())
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, kwargs, context))
