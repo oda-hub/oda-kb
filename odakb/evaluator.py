@@ -5,6 +5,7 @@ import io
 import glob
 import click
 import yaml
+import pprint
 import hashlib
 import traceback
 import subprocess
@@ -98,12 +99,16 @@ def evaluate_local(query, kwargs, context):
         print("nbrun with",nbname, kwargs)
         d = nba.nbrun(nbname, kwargs)
 
-        print("nbrun returns",d)
+        print("nbrun returns:")
 
         for k, v in d.items():
+            if not k.endswith("_content"):
+                print(k, pprint.pformat(v))
+    
             try:
                 d[k] = yaml.safe_load(v)
-            except: pass
+            except:
+                pass
 
         try:
             os.makedirs("data")
