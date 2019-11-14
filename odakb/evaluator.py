@@ -62,22 +62,28 @@ def build_local_context():
     return context
 
 def unique_name(query, kwargs, context):
+    print("unique name for", query,kwargs,context)
+
     s=io.StringIO()
     yaml.dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
     
     query_alias = query.replace("http://","").replace("/",".") 
 
-    return "{}-{}-{}".format(query_alias, qc, context[query]['version'])
+    r="{}-{}-{}-{}".format(query_alias, kwargs.get('nbname', 'default'), context[query]['version'], qc)
+    print("unique name is", r, "for", query,kwargs,context)
+    return r
     
 
 def evaluate_local(query, kwargs, context):
     print("will evaluate with local context", context[query])
+    print("full query:", query, "kwargs", kwargs)
+    
+    fn = "data/{}.yaml".format(unique_name(query, kwargs, context))
 
     kwargs = copy.deepcopy(kwargs)
     nbname_key = kwargs.pop('nbname', 'default')
 
-    fn = "data/{}.yaml".format(unique_name(query, kwargs, context))
 
     if os.path.exists(fn):
         d=yaml.safe_load(open(fn))
@@ -88,7 +94,7 @@ def evaluate_local(query, kwargs, context):
         else:
             nbdir = context[query]['path']
 
-        nbnames = glob.glob(nbdir+"/*ipynb")
+        nbnames = [n for n in glob.glob(nbdir+"/*ipynb") if not n.endswith("_output.ipynb")]
 
         print("nbnames:", nbnames)
         

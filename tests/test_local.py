@@ -4,7 +4,7 @@ def test_local():
 
     d = evaluate("http://odahub.io/test/testw")
 
-    print(d)
+    print(d.keys())
 
     assert d
 
@@ -15,7 +15,7 @@ def test_local_parameterized():
     d = evaluate("http://odahub.io/test/testw", t0=999)
     #d = evaluate("http://odahub.io/test/testw", ":t0 :value 999 .")
 
-    print(d)
+    print(d.keys())
 
     assert d
 
@@ -28,7 +28,7 @@ def test_local_cwd():
     with Path("code/odahub.io.test.testw"):
         d = evaluate("http://odahub.io/test/testw")
 
-    print(d)
+    print(d.keys())
 
     assert d
 
@@ -40,7 +40,7 @@ def test_local_cwd_gitlab():
     with Path("code/odahub.io.test.testw"):
         d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow.git")
 
-    print(d)
+    print(d.keys())
 
     assert d
 
@@ -51,13 +51,12 @@ def test_local_gitlab_mulitnb():
 
     d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow-2nb.git", nbname="test2")
 
-    print(d)
+    print(d.keys())
 
     assert d
 
 def test_local_gitlab_mulitnb_fail():
     from odakb import evaluate
-
     from path import Path
 
     try:
@@ -76,7 +75,7 @@ def test_local_gitlab_mulitnb_ssh():
 
     d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow-2nb.git", nbname="test2", _cached=False)
 
-    print(d)
+    print(d.keys())
 
     assert d
 
