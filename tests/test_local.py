@@ -84,14 +84,16 @@ def test_git4ci():
     from odakb import evaluator as ev 
     assert ev.git4ci("git@gitlab.astro.unige.ch:integral/cc-workflows/cc-herx1.git") == "https://gitlab-ci-token:REDACTED@gitlab.astro.unige.ch/integral/cc-workflows/cc-herx1.git"
 
-def test_local_gitlab_mulitnb_ssh():
+def test_local_gitlab_mulitnb_ssh_fail():
     from odakb import evaluate
 
     from path import Path
 
-    d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow.git", induce_fail=1, _cached=False)
+    try:
+        d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow.git", induce_fail=1, _cached=False)
+    except Exception as e:
+        print(e)
+    else:
+        raise Exception("did not fail")
 
-    print(d)
-
-    assert d
 
