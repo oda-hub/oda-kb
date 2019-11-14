@@ -3,6 +3,7 @@ import re
 import sys
 import io
 import glob
+import copy
 import click
 import yaml
 import pprint
@@ -73,6 +74,7 @@ def unique_name(query, kwargs, context):
 def evaluate_local(query, kwargs, context):
     print("will evaluate with local context", context[query])
 
+    kwargs = copy.deepcopy(kwargs)
     nbname_key = kwargs.pop('nbname', 'default')
 
     fn = "data/{}.yaml".format(unique_name(query, kwargs, context))

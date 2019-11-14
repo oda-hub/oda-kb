@@ -36,7 +36,7 @@ def restore(bucket, return_metadata = False):
     else:
         return json.load(data)
 
-@cli.command("restore")
+@cli.command("get")
 @click.argument("bucket")
 def _restore(bucket):
     m, d = restore(bucket, return_metadata=True)
@@ -46,6 +46,22 @@ def _restore(bucket):
     for k,v in d.items():
         if not k.endswith("_content"):
             click.echo("{}: {}".format(k, pprint.pformat(v)))
+
+@cli.command("rm")
+@click.argument("bucket")
+def _delete(bucket):
+    client = get_minio()
+    try:
+        for o in client.list_objects(bucket):
+            print("found object", o)
+            client.remove_object(bucket, o.object_name)
+
+        client.remove_bucket(bucket)
+        print("removed bucket", bucket)
+    except Exception as e:
+        print("unable to remove bucket", bucket, e)
+
+
    
 
 @cli.command("list")
