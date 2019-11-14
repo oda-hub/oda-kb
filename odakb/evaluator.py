@@ -25,6 +25,8 @@ def to_bucket_name(n):
     if len(bn)>63:
         bn = hashlib.sha256(bn.encode()).hexdigest()[:8] + "-" + bn[(63-8-1):]
 
+    bn = bn.lower()
+
     return bn
 
 
