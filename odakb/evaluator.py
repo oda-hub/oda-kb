@@ -9,12 +9,39 @@ import yaml
 import pprint
 import hashlib
 import traceback
+import importlib
 import subprocess
-import re
+import pkg_resources
 import odakb.sparql as sp
 import odakb.datalake as dl
 
 import nb2workflow.nbadapter as nba
+
+
+def add_numpy_representers():
+    import numpy as np
+
+    def numpy_representer_seq(dumper, data):
+        return dumper.represent_sequence('!ndarray:', data.tolist())
+    
+    def numpy_representer_int64(dumper, data):
+        return dumper.represent_scalar('!numpy.int64:', "%i"%int(data))
+    
+    def numpy_representer_float64(dumper, data):
+        return dumper.represent_scalar('!numpy.float64:', "%.20lg"%float(data))
+
+    #yaml.add_representer(np.ndarray, numpy_representer_str)
+    yaml.SafeDumper.add_representer(np.ndarray, numpy_representer_seq)
+    yaml.SafeDumper.add_representer(np.int64, numpy_representer_int64)
+    yaml.SafeDumper.add_representer(np.float64, numpy_representer_float64)
+    #yaml.add_representer(unicode, str_presenter)
+    
+    yaml.SafeLoader.add_constructor('!ndarray:', numpy_representer_seq)
+    yaml.SafeLoader.add_constructor('!numpy.int64:', lambda self, node: np.int64(node.value))
+    yaml.SafeLoader.add_constructor('!numpy.float64:', lambda self, node: np.float64(node.value))
+
+    print (yaml.dump({'a':np.arange(4)},default_flow_style=False))
+
 
 def to_bucket_name(n):
     bn = re.sub(r'-+', "-", re.sub(r'\W', "-", n))
@@ -35,14 +62,18 @@ def git_get_url(d):
  #   return subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=d).decode().strip()
     return subprocess.check_output(["git", "config", "remote.origin.url"], cwd=d).decode().strip()
 
-def build_local_context():
+def build_local_context(query, origins, callable_kind):
     context = {}
 
     # also deduce from gitlhub reference
     for oda_yaml in ["oda.yaml"] + glob.glob("code/*/oda.yaml"):
         if not os.path.exists(oda_yaml): continue
 
-        y = yaml.safe_load(open(oda_yaml))
+        try:
+            y = yaml.safe_load(open(oda_yaml))
+        except:
+            y = yaml.load(open(oda_yaml))
+
         print("context: loading oda yaml", oda_yaml, y)
         context[y['uri_base']] = dict()
 
@@ -53,13 +84,28 @@ def build_local_context():
 
         context[y['uri_base']]['version']=subprocess.check_output(["git", "describe", "--always", "--tags", "--dirty"], cwd=context[y['uri_base']]['path']).decode().strip()
         context[y['uri_base']]['origin'] = git_get_url(context[y['uri_base']]['path'])
+        context[y['uri_base']]['callable_kind'] = callable_kind
 
         context[context[y['uri_base']]['origin']] = context[y['uri_base']]
 
+    if callable_kind == "http://odahub.io/ontology#pypi-function":
 
+        assert len(origins) == 1
+
+        origin = origins[0]
+
+        package_name, package_callable = origin.split(".", 1)
+        print("found pypi-based function", package_name, package_callable)
+
+
+        context[query] = dict()
+        context[query]['origin'] = package_name
+        context[query]['path'] = package_callable
+        context[query]['version'] = pkg_resources.get_distribution(package_name).version
+        context[query]['callable_kind'] = callable_kind
         
 
-    yaml.dump(context, open("context.yaml", "w"))
+    yaml.safe_dump(context, open("context.yaml", "w"))
 
     return context
 
@@ -67,7 +113,7 @@ def unique_name(query, kwargs, context):
     print("unique name for", query,kwargs,context)
 
     s=io.StringIO()
-    yaml.dump(kwargs, s)
+    yaml.safe_dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
     
     query_alias = query.replace("http://","").replace("/",".") 
@@ -77,7 +123,7 @@ def unique_name(query, kwargs, context):
     return r
     
 
-def evaluate_local(query, kwargs, context):
+def evaluate_local(query, args, kwargs, context):
     print("will evaluate with local context", context[query])
     print("full query:", query, "kwargs", kwargs)
     
@@ -86,46 +132,55 @@ def evaluate_local(query, kwargs, context):
     kwargs = copy.deepcopy(kwargs)
     nbname_key = kwargs.pop('nbname', 'default')
 
+    callable_kind = context[query].get('callable_kind')
 
     if os.path.exists(fn):
-        d=yaml.safe_load(open(fn))
+        try:
+            d=yaml.safe_load(open(fn))
+        except:
+            d=yaml.load(open(fn))
 
     else:
-        if context[query]['path'] is None:
-            nbdir = "./"
+        if callable_kind == "http://odahub.io/ontology#pypi-function":
+            module = importlib.import_module(context[query]['origin'])
+            func = getattr(module, context[query]['path'])
+            d = func(*args, **kwargs)
         else:
-            nbdir = context[query]['path']
+            if context[query]['path'] is None:
+                nbdir = "./"
+            else:
+                nbdir = context[query]['path']
 
-        nbnames = [n for n in glob.glob(nbdir+"/*ipynb") if not n.endswith("_output.ipynb")]
+            nbnames = [n for n in glob.glob(nbdir+"/*ipynb") if not n.endswith("_output.ipynb")]
 
-        print("nbnames:", nbnames)
+            print("nbnames:", nbnames)
+            
+            if nbname_key == "default":
+                assert len(nbnames) == 1
+                nbname = nbnames[0]
+            else:
+                nbname = nbdir + "/" + nbname_key + ".ipynb"
         
-        if nbname_key == "default":
-            assert len(nbnames) == 1
-            nbname = nbnames[0]
-        else:
-            nbname = nbdir + "/" + nbname_key + ".ipynb"
-    
-        print("nbrun with",nbname, kwargs)
-        d = nba.nbrun(nbname, kwargs)
+            print("nbrun with",nbname, kwargs)
+            d = nba.nbrun(nbname, kwargs)
 
-        print("nbrun returns:")
+            print("nbrun returns:")
 
-        for k, v in d.items():
-            if not k.endswith("_content"):
-                print(k, pprint.pformat(v))
-    
-            try:
-                d[k] = yaml.safe_load(v)
-            except:
-                pass
+            for k, v in d.items():
+                if not k.endswith("_content"):
+                    print(k, pprint.pformat(v))
+        
+                try:
+                    d[k] = yaml.safe_load(v)
+                except:
+                    pass
 
         try:
             os.makedirs("data")
         except:
             pass
     
-        yaml.dump(d, open(fn, "w"))
+        yaml.safe_dump(d, open(fn, "w"))
 
     return d
 
@@ -139,6 +194,10 @@ def resolve_callable(query):
     
     if r['results']['bindings'] == []:
         callable_kind="http://odahub.io/callable/notebook"
+    elif len(r['results']['bindings']) == 1:
+        callable_kind=r['results']['bindings'][0]['kind']['value']
+    else:
+        raise Exception("multiple callable: %s"%repr(r['results']['bindings']))
 
     r=sp.select(None, "<%s> oda:location ?location ."%query)
     
@@ -157,7 +216,7 @@ def git4ci(origin):
 
     return origin
 
-def fetch_origins(origins, query):
+def fetch_origins(origins, callable_kind, query):
     try:
         base_dir_origin = git_get_url(None)
     except:
@@ -205,7 +264,7 @@ def fetch_origins(origins, query):
 @click.command()
 @click.argument("query")
 @sp.unclick
-def _evaluate(query, *subqueries, **kwargs):
+def _evaluate(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
 
     callable_kind, origins = resolve_callable(query)       
@@ -214,11 +273,11 @@ def _evaluate(query, *subqueries, **kwargs):
 
     print("assuming this container is compliant with", query)
     
-    query_fetched_origin, query_names = fetch_origins(origins, query)
+    query_fetched_origin, query_names = fetch_origins(origins, callable_kind, query)
 
     print("fetched origin for query", query, "is", query_fetched_origin, "all query names", query_names)
 
-    context = build_local_context()
+    context = build_local_context(query, origins, callable_kind)
 
     print("got context for", context.keys())
 
@@ -245,9 +304,10 @@ def _evaluate(query, *subqueries, **kwargs):
     # TODO: need construct kwargs from sub queries
 
     d = None
+
     if query.startswith("http://") or query.startswith("https://")  or query.startswith("git@"):
         if query in context:
-            d = evaluate_local(query, kwargs, context)
+            d = evaluate_local(query, args, kwargs, context)
         else:
             raise Exception("unable to find query:",query, "have:",context.keys())
 
