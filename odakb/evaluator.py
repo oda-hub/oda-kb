@@ -109,10 +109,11 @@ def build_local_context(query, origins, callable_kind):
 
     return context
 
-def unique_name(query, kwargs, context):
+def unique_name(query, args, kwargs, context):
     print("unique name for", query,kwargs,context)
 
     s=io.StringIO()
+    yaml.safe_dump(args, s)
     yaml.safe_dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
     
@@ -127,7 +128,7 @@ def evaluate_local(query, args, kwargs, context):
     print("will evaluate with local context", context[query])
     print("full query:", query, "kwargs", kwargs)
     
-    fn = "data/{}.yaml".format(unique_name(query, kwargs, context))
+    fn = "data/{}.yaml".format(unique_name(query, args, kwargs, context))
 
     kwargs = copy.deepcopy(kwargs)
     nbname_key = kwargs.pop('nbname', 'default')
@@ -288,7 +289,7 @@ def _evaluate(query, *args, **kwargs):
     print("after aliasing got context for", context.keys())
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
-    uname = to_bucket_name(unique_name(query, kwargs, context)) # unique-name contains version
+    uname = to_bucket_name(unique_name(query, args, kwargs, context)) # unique-name contains version
 
     
     
