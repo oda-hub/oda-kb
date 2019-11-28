@@ -15,7 +15,10 @@ import pkg_resources
 import odakb.sparql as sp
 import odakb.datalake as dl
 
-import nb2workflow.nbadapter as nba
+try:
+    import nb2workflow.nbadapter as nba
+except Exception as e:
+    print("unable to import evaluator for nba!", e)
 
 
 def add_numpy_representers():
