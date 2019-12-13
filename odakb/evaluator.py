@@ -93,7 +93,8 @@ def build_local_context(query, origins, callable_kind):
 
     if callable_kind == "http://odahub.io/ontology#pypi-function":
 
-        assert len(origins) == 1
+        if len(origins) != 1:
+            raise Exception("one and only one origin required; found: {}".format(origins))
 
         origin = origins[0]
 
@@ -160,8 +161,10 @@ def evaluate_local(query, args, kwargs, context):
             print("nbnames:", nbnames)
             
             if nbname_key == "default":
-                assert len(nbnames) == 1
-                nbname = nbnames[0]
+                if len(nbnames) == 1:
+                    nbname = nbnames[0]
+                else:
+                    raise Exception("one and only one nb possible with default key, found {}".format(nbnames))
             else:
                 nbname = nbdir + "/" + nbname_key + ".ipynb"
         
@@ -270,6 +273,8 @@ def fetch_origins(origins, callable_kind, query):
 @sp.unclick
 def _evaluate(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
+    
+    restrict_execution_modes = kwargs.pop('_restrict_execution_modes', None) # None means all
 
     callable_kind, origins = resolve_callable(query)       
 
@@ -302,8 +307,7 @@ def _evaluate(query, *args, **kwargs):
             print("got from bucket", uname)
             return d
         except Exception as e:
-            traceback.print_exc()
-            print("unable to get the bucket:", e)
+            print("unable to get the bucket", uname, ":", e)
 
     # TODO: need construct kwargs from sub queries
 
