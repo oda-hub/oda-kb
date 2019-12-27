@@ -23,6 +23,18 @@ default_prefixes=[
     "PREFIX foaf: <http://xmlns.com/foaf/0.1/>"
 ]
 
+
+def load_defaults(default_prefixes):
+    for p in yaml.load(open(os.environ.get("HOME")))['prefixes']:
+        if p not in default_prefixes:
+            print("appending new prefix:", p)
+            default_prefixes.append(p)
+
+try:
+    load_defaults(default_prefixes)
+except:
+    pass
+
 query_stats = None
 
 
