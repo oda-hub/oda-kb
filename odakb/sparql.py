@@ -1,39 +1,88 @@
 import copy
 import os
-import sys
 import time
+import glob
+import sys
+import yaml
 import pkg_resources
 import requests
+import importlib
 
 import keyring
 import click
 
 
+import logging
+logger = logging.getLogger(__name__)
 
-default_prefixes=[
-    "PREFIX an: <http://ddahub.io/ontology/analysis#>",
-    "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
-    "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
-    "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
-    "PREFIX da: <https://www.wowman.org/index.php?id=1&type=get#>",
-    "PREFIX dda: <http://ddahub.io/ontology/analysis#>",
-    "PREFIX data: <http://ddahub.io/ontology/data#>",
-    "PREFIX tns: <http://odahub.io/ontology/tns#>",
-    "PREFIX oda: <http://odahub.io/ontology#>",
-    "PREFIX foaf: <http://xmlns.com/foaf/0.1/>"
-]
+default_prefixes=[]
+
+default_graphs=[]
+
+def parse_shortcuts(graph_serial):
+    g = graph_serial.replace("="," an:equalTo ")
+    if not g.strip().endswith("."):
+        g += " ."
+
+    return g
+
+def load_graph(G, serial, shortcuts=False):
+    if serial.startswith("https://"):
+        G.load(serial)
+    else:
+        logger.info("will load:", serial,"INFO")
+        G.parse(
+            data="\n".join(default_prefixes) + (lambda x:x if not shortcuts else parse_shortcuts)(serial),
+            format="turtle"
+        )
 
 
-def load_defaults(default_prefixes):
-    for p in yaml.load(open(os.environ.get("HOME")))['prefixes']:
-        if p not in default_prefixes:
-            print("appending new prefix:", p)
-            default_prefixes.append(p)
+def load_defaults(default_prefixes, default_graphs):
+    try:
+        odakb_defaults = os.path.join(os.environ.get("HOME"), ".odakb", "defaults.yaml")
+        logger.info("oda defaults from", odakb_defaults)
 
-try:
-    load_defaults(default_prefixes)
-except:
-    pass
+        for p in yaml.safe_load(open(odakb_defaults))['prefixes']:
+            if p not in default_prefixes:
+                logger.info("appending new prefix:", p)
+                default_prefixes.append(p)
+    except Exception as e:
+        logger.info("unable to load default prefixes:", e)
+
+    try:
+        odakb_graphs = glob.glob(os.path.join(os.environ.get("HOME"), ".odakb", "graphs.d","*"))
+        logger.info("default graphs from:", odakb_graphs)
+        for oda_graph_fn in odakb_graphs:
+            default_graphs.append(open(oda_graph_fn).read())
+    except Exception as e:
+        logger.info("unable to load default graphs:", e)
+
+
+def process_graph_loaders(G):
+    for default_graph in default_graphs:
+        load_graph(G, default_graph)
+
+    q = """
+        SELECT ?loader ?rm ?location WHERE {
+            ?loader a oda:graphLoader;
+                    oda:runMethod ?rm;
+                    oda:location ?location .
+        }
+        """
+    r = query(q)
+        
+    for loader, rm, loc in G.query(q):
+        logger.info(loader, rm, loc)
+        if str(rm) == "http://odahub.io/ontology#pythonModule":
+            logger.info("will load python module", loc)
+            mn, fn = loc.split(".")
+            m = importlib.import_module(mn)
+            getattr(m, fn)(G)
+        else:
+            raise Exception("unable to exploit run method %s"%rm)
+
+
+load_defaults(default_prefixes, default_graphs)
 
 query_stats = None
 
@@ -66,7 +115,7 @@ def note_stats(**kwargs):
     query_stats.append(kwargs)
 
 def report_stats():
-    print(query_stats)
+    logger.info(query_stats)
 
     if query_stats is not None:
         summary=dict(
@@ -91,7 +140,7 @@ def compose_sparql(body, prefixes=None):
 
 def execute_sparql(data, endpoint, debug, invalid_raise):
     if debug:
-        print("data:", data)
+        logger.info("data:", data)
         
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
@@ -114,10 +163,10 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
     note_stats(spent_seconds=time.time()-t0, query_size=len(data))
     
     if debug:
-        print(r)
-        print(r.text)
+        logger.info(r)
+        logger.info(r.text)
 
-        print(report_stats())
+        logger.info(report_stats())
 
     
     if invalid_raise:

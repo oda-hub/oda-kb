@@ -2,11 +2,29 @@ import cwltool.factory
 import requests
 import pprint
 import os
+import sys
 import json
 import io
 import ast
 import click
 import hashlib
+
+import logging
+ 
+def get_logger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+ #   ch = logging.StreamHandler()
+ #   ch.setLevel(logging.INFO)
+
+ #   formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ #   ch.setFormatter(formatter)
+
+ #   logger.addHandler(ch)
+    return logger
+
+logger = get_logger(__name__)
 
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
@@ -53,13 +71,13 @@ def _delete(bucket):
     client = get_minio()
     try:
         for o in client.list_objects(bucket):
-            print("found object", o)
+            logger.info("found object", o)
             client.remove_object(bucket, o.object_name)
 
         client.remove_bucket(bucket)
-        print("removed bucket", bucket)
+        logger.info("removed bucket", bucket)
     except Exception as e:
-        print("unable to remove bucket", bucket, e)
+        logger.info("unable to remove bucket", bucket, e)
 
 
    
@@ -67,18 +85,32 @@ def _delete(bucket):
 @cli.command("list")
 def list_buckets():
     client = get_minio()
+
     for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
         meta = json.loads(client.get_object(bucket.name, 'meta').read())
-        click.echo("{creation_date} {source_name:>10} {bucket_name:64}".format(
+        logger.info("{creation_date} {source_name:>10} {bucket_name:64}".format(
                     bucket_name=bucket.name, 
                     creation_date=bucket.creation_date, 
                     source_name=str(meta.get('kwargs', {}).get('source_name'))
                    ))
 
+@cli.command("put")
+@click.option("-b","--bucket", default=None)
+@click.option("-m","--meta", default=None)
+@click.option("-d","--data", default=None, help="ghrg")
+def _put(bucket, meta, data):
+    if data is None:
+        logger.info("reading data from stdin")
+        data = sys.stdin.read()
+    elif data.startswith("@"):
+        fn = data[1:]
+        logger.info("reading data from %s",fn)
+        data=open(fn).read()
+
+    
 
 def store(data, meta=None, bucket_name = None):
     data_json = json.dumps(data)
-
         
 
     if bucket_name is None:
@@ -97,13 +129,13 @@ def store(data, meta=None, bucket_name = None):
             get_name = lambda object: object.object_name
             names = map(get_name, client.list_objects_v2(bucket_name, '', recursive=True))
             for err in client.remove_objects(bucket_name, names):
-                print("Deletion Error: {}".format(err))
+                logger.info("Deletion Error: {}".format(err))
         except ResponseError as err:
-            print(err)
+            logger.info(err)
 
         client.remove_bucket(bucket_name)
     except Exception as e:
-        print(e)
+        logger.info(e)
 
     try:
          client.make_bucket(bucket_name, location="us-east-1")
@@ -116,11 +148,11 @@ def store(data, meta=None, bucket_name = None):
     else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
         try:
-             print(client.put_object(bucket_name, 'data', io.BytesIO(data_json.encode()), len(data_json)))
-             print(client.put_object(bucket_name, 'meta', io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
-             print("stored")
+             logger.info(client.put_object(bucket_name, 'data', io.BytesIO(data_json.encode()), len(data_json)))
+             logger.info(client.put_object(bucket_name, 'meta', io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
+             logger.info("stored")
         except ResponseError as err:
-             print(err)
+             logger.info(err)
 
     return bucket_name
 
@@ -133,7 +165,7 @@ def form_bucket_name(data):
 
 
 def self_test():
-    print("loading", bucket_name)
+    logger.info("loading", bucket_name)
 
     try:
         r = load(bucket_name)
