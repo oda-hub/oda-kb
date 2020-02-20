@@ -21,6 +21,11 @@ except Exception as e:
     print("unable to import evaluator for nba!", e)
 
 
+# evaluation is reification
+# enerative workflows are reificationo
+# facts and rules
+
+
 def add_numpy_representers():
     import numpy as np
 
@@ -270,11 +275,9 @@ def fetch_origins(origins, callable_kind, query):
 
 @click.command()
 @click.argument("query")
-@click.restrict("-r","--restrict")
+@click.option("-r","--restrict")
 @sp.unclick
 def _evaluate(query, *args, **kwargs):
-    cached = kwargs.pop('_cached', True)
-    
     restrict_execution_modes = kwargs.pop('restrict', "local,baobab") # None means all
 
     restrict_execution_modes = restrict_execution_modes.split(",")
@@ -282,15 +285,19 @@ def _evaluate(query, *args, **kwargs):
     for execution_mode in restrict_execution_modes:
         try:
             print("trying execution mode", execution_mode)
-            r=globals()['evaluate_'+execution_mode]
+            r=globals()['evaluate_'+execution_mode](query, *args, **kwargs)
             print("succeeded execution mode", execution_mode)
             return r
         except Exception as e:
-            print("failed mode", execution_mode)
+            print("failed mode", execution_mode, e)
+            raise 
+
     
 
 
 def evaluate_local(query, *args, **kwargs):
+    cached = kwargs.pop('_cached', True)
+
     callable_kind, origins = resolve_callable(query)       
 
     # may also call CWL; verify that CWL is runnable in this container
