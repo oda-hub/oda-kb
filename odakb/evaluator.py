@@ -128,7 +128,7 @@ def unique_name(query, args, kwargs, context):
     return r
     
 
-def evaluate_local(query, args, kwargs, context):
+def execute_local(query, args, kwargs, context):
     print("will evaluate with local context", context[query])
     print("full query:", query, "kwargs", kwargs)
     
@@ -270,12 +270,27 @@ def fetch_origins(origins, callable_kind, query):
 
 @click.command()
 @click.argument("query")
+@click.restrict("-r","--restrict")
 @sp.unclick
 def _evaluate(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
     
-    restrict_execution_modes = kwargs.pop('_restrict_execution_modes', None) # None means all
+    restrict_execution_modes = kwargs.pop('restrict', "local,baobab") # None means all
 
+    restrict_execution_modes = restrict_execution_modes.split(",")
+
+    for execution_mode in restrict_execution_modes:
+        try:
+            print("trying execution mode", execution_mode)
+            r=globals()['evaluate_'+execution_mode]
+            print("succeeded execution mode", execution_mode)
+            return r
+        except Exception as e:
+            print("failed mode", execution_mode)
+    
+
+
+def evaluate_local(query, *args, **kwargs):
     callable_kind, origins = resolve_callable(query)       
 
     # may also call CWL; verify that CWL is runnable in this container
@@ -315,7 +330,7 @@ def _evaluate(query, *args, **kwargs):
 
     if query.startswith("http://") or query.startswith("https://")  or query.startswith("git@"):
         if query in context:
-            d = evaluate_local(query, args, kwargs, context)
+            d = execute_local(query, args, kwargs, context)
         else:
             raise Exception("unable to find query:",query, "have:",context.keys())
 
