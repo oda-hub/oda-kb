@@ -40,22 +40,22 @@ def load_graph(G, serial, shortcuts=False):
 def load_defaults(default_prefixes, default_graphs):
     try:
         odakb_defaults = os.path.join(os.environ.get("HOME"), ".odakb", "defaults.yaml")
-        logger.info("oda defaults from", odakb_defaults)
+        logger.info("oda defaults from %s", odakb_defaults)
 
         for p in yaml.safe_load(open(odakb_defaults))['prefixes']:
             if p not in default_prefixes:
-                logger.info("appending new prefix:", p)
+                logger.info("appending new prefix: %s", p)
                 default_prefixes.append(p)
     except Exception as e:
         logger.info("unable to load default prefixes:", e)
 
     try:
         odakb_graphs = glob.glob(os.path.join(os.environ.get("HOME"), ".odakb", "graphs.d","*"))
-        logger.info("default graphs from:", odakb_graphs)
+        logger.info("default graphs from: %s", odakb_graphs)
         for oda_graph_fn in odakb_graphs:
             default_graphs.append(open(oda_graph_fn).read())
     except Exception as e:
-        logger.info("unable to load default graphs:", e)
+        logger.info("unable to load default graphs: %s", e)
 
 
 def process_graph_loaders(G):

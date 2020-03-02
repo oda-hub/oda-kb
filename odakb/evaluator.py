@@ -273,6 +273,10 @@ def fetch_origins(origins, callable_kind, query):
     return None, []
 
 
+def query_args_kwargs2rdf(query, *args, **kwargs):
+    pass
+
+
 @click.command()
 @click.argument("query")
 @click.option("-r","--restrict")
@@ -280,14 +284,20 @@ def fetch_origins(origins, callable_kind, query):
 def _evaluate(query, *args, **kwargs):
     restrict_execution_modes = kwargs.pop('restrict', "local,baobab") # None means all
 
+    Q = query_args_kwargs2rdf(query, *args, **kwargs)
+
     restrict_execution_modes = restrict_execution_modes.split(",")
 
     for execution_mode in restrict_execution_modes:
         try:
             print("trying execution mode", execution_mode)
-            r=globals()['evaluate_'+execution_mode](query, *args, **kwargs)
-            print("succeeded execution mode", execution_mode)
-            return r
+
+            r_func=globals()['evaluate_'+execution_mode]
+
+            print("execution mode will proceed", execution_mode, "with", r_func)
+
+            print("towards evaluation")
+            return r_func(query, *args, **kwargs)
         except Exception as e:
             print("failed mode", execution_mode, e)
             raise 
