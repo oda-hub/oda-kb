@@ -10,5 +10,5 @@ if {'pytest', 'test', 'ptr'}.intersection(sys.argv):
 
 setup(description="oda-sparql",
       long_description=open('README.md').read(),
-      version=open('VERSION').read().strip(),
+      version='0.4.0',
       setup_requires=setup_requires)
