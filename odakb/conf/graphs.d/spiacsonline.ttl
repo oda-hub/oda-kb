@@ -1,0 +1,11 @@
+an:spiacs-online rdfs:subClassOf an:HTTPAnalysis;
+                rdfs:subClassOf an:Workflow;
+                oda:url "https://www.isdc.unige.ch/~savchenk/spiacs-online/spiacs-plot.pl?submit=Submit" .
+
+an:HTTPAnalysis rdfs:subClassOf an:Workflow .
+
+an:spiacs-online a rdfs:Class .
+
+an:spiacs-online rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty onto:expects ;
+            owl:someValuesFrom an:requeststring ] .

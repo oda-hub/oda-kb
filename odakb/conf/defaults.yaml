@@ -1,0 +1,13 @@
+prefixes:    
+    - "PREFIX foaf: <http://xmlns.com/foaf/0.1/>"
+    - "PREFIX owl: <http://www.w3.org/2002/07/owl#>"
+    - "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"
+    - "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
+    - "PREFIX an: <http://ddahub.io/ontology/analysis#>"
+    - "PREFIX data: <http://ddahub.io/ontology/data#>"
+    - "PREFIX oda: <http://odahub.io/ontology#>"
+    - "PREFIX tns: <http://odahub.io/ontology/tns#>"
+    - "PREFIX local: <http://localhost/>"
+    - "PREFIX onto: <https://w3id.org/function/ontology#>"
+    - "PREFIX datalake: <http://odahub.io/datalake#>"
+    - "PREFIX data: <http://odahub.io/datalake/minio#>"

@@ -1,0 +1,4 @@
+oda:graphLoader a oda:Workflow .
+oda:odahubGraphLoader a oda:graphLoader;
+                      oda:runMethod oda:pythonModule;
+                      oda:location "odahub.get_default_graphs" .
