@@ -1,5 +1,6 @@
 import copy
 import os
+import io
 import time
 import glob
 import sys
@@ -48,6 +49,18 @@ def load_defaults(default_prefixes, default_graphs):
                 default_prefixes.append(p)
     except Exception as e:
         logger.info("unable to load default prefixes:", e)
+    
+    try:
+        odakb_defaults_http = "http://ontology.odahub.io/defaults/defaults.yaml"
+        logger.info("oda defaults from %s", odakb_defaults_http)
+
+        for p in yaml.safe_load(io.StringIO(requests.get(odakb_defaults_http).text))['prefixes']:
+            if p not in default_prefixes:
+                logger.info("appending new prefix: %s", p)
+                default_prefixes.append(p)
+    except Exception as e:
+        logger.info("unable to load default prefixes:", e)
+        raise
 
     try:
         odakb_graphs = glob.glob(os.path.join(os.environ.get("HOME"), ".odakb", "graphs.d","*"))
