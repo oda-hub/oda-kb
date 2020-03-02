@@ -355,7 +355,8 @@ def evaluate_local(query, *args, **kwargs):
         raise Exception("unable to interpret query")
 
     try:
-        dl.store(d, metadata, uname)
+        r=dl.store(d, metadata, uname)
+        print("successfully stored to the datalake", r)
     except Exception as e:
         print("problem storing to the datalake", e)
 
