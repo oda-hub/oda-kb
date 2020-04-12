@@ -10,6 +10,6 @@ if {'pytest', 'test', 'ptr'}.intersection(sys.argv):
 
 setup(description="oda-sparql",
       long_description=open('README.md').read(),
-      version='0.4.3',
+      version='0.4.4-dev0',
       include_package_data=True,
       setup_requires=setup_requires)
