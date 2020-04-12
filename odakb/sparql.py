@@ -59,7 +59,7 @@ def load_defaults(default_prefixes, default_graphs):
                 logger.info("appending new prefix: %s", p)
                 default_prefixes.append(p)
     except Exception as e:
-        logger.info("unable to load default prefixes:", e)
+        logger.info("unable to load default prefixes: %s", repr(e))
     
     try:
         odakb_defaults_http = "http://ontology.odahub.io/defaults/defaults.yaml"
@@ -70,7 +70,7 @@ def load_defaults(default_prefixes, default_graphs):
                 logger.info("appending new prefix: %s", p)
                 default_prefixes.append(p)
     except Exception as e:
-        logger.info("unable to load default prefixes:", e)
+        logger.info("unable to load default prefixes: %s", repr(e))
         raise
 
     try:
