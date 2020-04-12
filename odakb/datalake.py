@@ -56,7 +56,8 @@ def restore(bucket, return_metadata = False):
 
 @cli.command("get")
 @click.argument("bucket")
-def _restore(bucket):
+@click.option("-o","--output", default=None)
+def _restore(bucket, output=None):
     m, d = restore(bucket, return_metadata=True)
 
     click.echo(pprint.pformat(m))
@@ -64,6 +65,10 @@ def _restore(bucket):
     for k,v in d.items():
         if not k.endswith("_content"):
             click.echo("{}: {}".format(k, pprint.pformat(v)))
+
+    if output is not None:
+        json.dump(d, open(output,"w"))
+        click.echo("storing output to {}".format(output))
 
 @cli.command("rm")
 @click.argument("bucket")
@@ -87,12 +92,15 @@ def list_buckets():
     client = get_minio()
 
     for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
-        meta = json.loads(client.get_object(bucket.name, 'meta').read())
-        logger.info("{creation_date} {source_name:>10} {bucket_name:64}".format(
-                    bucket_name=bucket.name, 
-                    creation_date=bucket.creation_date, 
-                    source_name=str(meta.get('kwargs', {}).get('source_name'))
-                   ))
+        try:
+            meta = json.loads(client.get_object(bucket.name, 'meta').read())
+            logger.info("{creation_date} {source_name:>10} {bucket_name:64}".format(
+                        bucket_name=bucket.name, 
+                        creation_date=bucket.creation_date, 
+                        source_name=str(meta.get('kwargs', {}).get('source_name'))
+                       ))
+        except Exception as e:
+            logger.warning("problematic bucket {}".format(bucket.name))
 
 @cli.command("put")
 @click.option("-b","--bucket", default=None)

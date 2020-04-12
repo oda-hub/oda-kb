@@ -164,7 +164,7 @@ def compose_sparql(body, prefixes=None):
 
 def execute_sparql(data, endpoint, debug, invalid_raise):
     if debug:
-        logger.info("data:", data)
+        logger.info("data: %s", repr(data))
         
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
