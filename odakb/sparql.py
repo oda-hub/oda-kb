@@ -175,7 +175,7 @@ def get_jena_password():
             }.items():
         try:
             r = m()
-            print("good JENA password from", n, r)
+            print("good JENA password from", n)
             return r
         except Exception as e:
             print("failed", n, m, e)
@@ -256,9 +256,8 @@ def query(query, prefixes=None, debug=True, invalid_raise=True):
 
 @cli.command("select")
 @click.argument("query")
-@click.pass_context
 @unclick
-def _select(ctx=None, query=None, prefixes=None, debug=True, todict=True):
+def _select(query=None, prefixes=None, debug=True, todict=True):
     data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
 
     r = execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
@@ -267,6 +266,36 @@ def _select(ctx=None, query=None, prefixes=None, debug=True, todict=True):
         return [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
     else:
         return r
+
+@cli.command("select-one")
+@click.argument("query")
+@unclick
+def _select_one(query=None, prefixes=None, debug=True, todict=True):
+    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
+
+    r = execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+
+    if len(r['results']['bindings']) > 1:
+        raise RuntimeError("many results!")
+    
+    if len(r['results']['bindings']) == 0:
+        raise RuntimeError("NO results!")
+
+    r = r['results']['bindings'][0]
+
+    if todict:
+        return { k: v['value'] for k, v in r.items() }
+    else:
+        return r['results']['bindings'][0]
+
+@cli.command("delete")
+@click.argument("query")
+@unclick
+def _delete(query=None, prefixes=None, debug=True, todict=True):
+    data = compose_sparql("DELETE DATA {\n" + query + "\n}", prefixes)
+
+    r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+
 
 @cli.command()
 def version():
