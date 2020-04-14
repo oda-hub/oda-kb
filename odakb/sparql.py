@@ -12,6 +12,13 @@ import importlib
 import keyring
 import click
 
+from os import getenv
+from keyrings.cryptfile.cryptfile import CryptFileKeyring
+kr = CryptFileKeyring()
+kr.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD") or None 
+keyring.set_keyring(kr)
+
+keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
 
 import logging
 
@@ -53,7 +60,7 @@ def load_defaults(default_prefixes, default_graphs):
 
     for odakb_defaults in [
                 os.path.join("/etc/odakb/defaults.yaml"),
-                os.path.join(os.environ.get("HOME"), ".odakb", "defaults.yaml"),
+                os.path.join(getenv("HOME"), ".odakb", "defaults.yaml"),
             ]:
         try:
             logger.info("oda defaults from %s", odakb_defaults)
@@ -78,7 +85,7 @@ def load_defaults(default_prefixes, default_graphs):
         raise
 
     try:
-        odakb_graphs = glob.glob(os.path.join(os.environ.get("HOME"), ".odakb", "graphs.d","*"))
+        odakb_graphs = glob.glob(os.path.join(getenv("HOME"), ".odakb", "graphs.d","*"))
         logger.info("default graphs from: %s", odakb_graphs)
         for oda_graph_fn in odakb_graphs:
             default_graphs.append(open(oda_graph_fn).read())
@@ -88,6 +95,7 @@ def load_defaults(default_prefixes, default_graphs):
 
 def process_graph_loaders(G):
     for default_graph in default_graphs:
+        logger.info("loading default graph", default_graph)
         load_graph(G, default_graph)
 
     q = """
@@ -158,6 +166,23 @@ def report_stats():
 class SPARQLException(Exception):
     pass
 
+def get_jena_password():
+    tried = []
+
+    for n, m in {
+                'keyring': lambda:keyring.get_password("jena", "admin"),
+                'environ': lambda:os.environ['JENA_PASSWORD'],
+            }.items():
+        try:
+            r = m()
+            print("good JENA password from", n, r)
+            return r
+        except Exception as e:
+            print("failed", n, m, e)
+            tried.append([n, m, e])
+
+    raise RuntimeError("no good jena password, tried: "+repr(tried))
+
 def compose_sparql(body, prefixes=None):
     _prefixes = copy.deepcopy(default_prefixes)
     if prefixes is not None:
@@ -172,7 +197,7 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
         
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
-                                         keyring.get_password("jena", "admin"))
+                                         get_jena_password())
     else:
         auth=None
 
