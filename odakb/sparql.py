@@ -179,12 +179,12 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
     t0=time.time()
 
     if endpoint == "update":    
-        r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/'+endpoint,
+        r=requests.post('https://sparql.odahub.io/dataanalysis/'+endpoint,
                         data=data,
                         auth=auth
                         )
     else:
-        r=requests.post('http://fuseki.internal.odahub.io/dataanalysis/'+endpoint,
+        r=requests.post('https://sparql.odahub.io/dataanalysis/'+endpoint,
                        params=dict(query=data)
                     )
 
@@ -233,10 +233,15 @@ def query(query, prefixes=None, debug=True, invalid_raise=True):
 @click.argument("query")
 @click.pass_context
 @unclick
-def _select(ctx=None, query=None, prefixes=None, debug=True):
+def _select(ctx=None, query=None, prefixes=None, debug=True, todict=True):
     data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
 
-    return execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+    r = execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+
+    if todict:
+        return [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
+    else:
+        return r
 
 @cli.command()
 def version():
