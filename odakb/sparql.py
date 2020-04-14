@@ -50,16 +50,20 @@ def load_graph(G, serial, shortcuts=False):
 
 
 def load_defaults(default_prefixes, default_graphs):
-    try:
-        odakb_defaults = os.path.join(os.environ.get("HOME"), ".odakb", "defaults.yaml")
-        logger.info("oda defaults from %s", odakb_defaults)
 
-        for p in yaml.safe_load(open(odakb_defaults))['prefixes']:
-            if p not in default_prefixes:
-                logger.info("appending new prefix: %s", p)
-                default_prefixes.append(p)
-    except Exception as e:
-        logger.info("unable to load default prefixes: %s", repr(e))
+    for odakb_defaults in [
+                os.path.join("/etc/odakb/defaults.yaml"),
+                os.path.join(os.environ.get("HOME"), ".odakb", "defaults.yaml"),
+            ]:
+        try:
+            logger.info("oda defaults from %s", odakb_defaults)
+
+            for p in yaml.safe_load(open(odakb_defaults))['prefixes']:
+                if p not in default_prefixes:
+                    logger.info("appending new prefix: %s", p)
+                    default_prefixes.append(p)
+        except Exception as e:
+            logger.info("unable to load default prefixes from %s: %s", odakb_defaults, repr(e))
     
     try:
         odakb_defaults_http = "http://ontology.odahub.io/defaults/defaults.yaml"
