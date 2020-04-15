@@ -241,10 +241,11 @@ def _update(query, prefixes=None, debug=True, invalid_raise=True):
 
 @cli.command("insert")
 @click.argument("query")
-@click.pass_context
+#@click.pass_context
 @unclick
-def _insert(ctx=None, query=None, prefixes=None, debug=True):
-    return ctx.invoke(update, query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
+def _insert(query=None, prefixes=None, debug=True):
+    #return ctx.invoke(update, query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
+    return update(query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
 
 def create(entries, prefixes=None, debug=True):
     return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}", prefixes)
@@ -296,6 +297,12 @@ def _delete(query=None, prefixes=None, debug=True, todict=True):
 
     r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
 
+@cli.command("rule")
+@click.argument("query")
+@click.argument("fact")
+@unclick
+def _reason(query, fact):
+    pass
 
 @cli.command()
 def version():

@@ -201,23 +201,23 @@ def resolve_callable(query):
         print("direct query to gitlab")
         return "http://odahub.io/callable/notebook", [query]
 
-    r=sp.select(None, "<%s> oda:callableKind ?kind ."%query)
+    r=sp.select("<%s> oda:callableKind ?kind ."%query)
     print(r)
     
-    if r['results']['bindings'] == []:
+    if r == []:
         callable_kind="http://odahub.io/callable/notebook"
-    elif len(r['results']['bindings']) == 1:
-        callable_kind=r['results']['bindings'][0]['kind']['value']
+    elif len(r) == 1:
+        callable_kind=r[0]['kind']
     else:
         raise Exception("multiple callable: %s"%repr(r['results']['bindings']))
 
-    r=sp.select(None, "<%s> oda:location ?location ."%query)
+    r=sp.select("<%s> oda:location ?location ."%query)
     
     print(r)
 
-    locations = r['results']['bindings']
+    locations = r
     
-    return callable_kind, [l['location']['value'] for l in locations]
+    return callable_kind, [l['location'] for l in locations]
 
 def git4ci(origin):
     if origin.startswith("git@"):
