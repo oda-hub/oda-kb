@@ -171,7 +171,7 @@ def get_jena_password():
     tried = []
 
     for n, m in {
-                'environ': lambda:os.environ['JENA_PASSWORD'],
+                'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
                 'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
