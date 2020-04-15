@@ -34,11 +34,23 @@ from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
 def cli():
     pass
 
+def get_minio_secret():
+    failures = {}
+    for n, m in {
+                "environ": lambda :os.environ['MINIO_KEY'],
+                "homefile": lambda :open(os.environ.get('HOME')+"/.minio").read().strip(),
+                }.items():
+        try:
+            return m()
+        except Exception as e:
+            failures[n] = e
+
+    raise RuntimeError("unable to discover MINIO: "+repr(failures))
 
 def get_minio():
     return Minio('minio-internal.odahub.io',
               access_key='minio',
-              secret_key=open(os.environ.get('HOME')+"/.minio").read().strip(),
+              secret_key=get_minio_secret(),
               secure=False)
 
 def restore(bucket, return_metadata = False):

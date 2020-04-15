@@ -269,26 +269,27 @@ def _select(query=None, prefixes=None, debug=True, todict=True):
     else:
         return r
 
+class ManyAnswers(Exception):
+    pass
+
+class NoAnswers(Exception):
+    pass
+
 @cli.command("select-one")
 @click.argument("query")
 @unclick
-def _select_one(query=None, prefixes=None, debug=True, todict=True):
-    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
+def _select_one(query=None, prefixes=None, debug=True):
+    r = select(query)
 
-    r = execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
-
-    if len(r['results']['bindings']) > 1:
-        raise RuntimeError("many results!")
+    if len(r) > 1:
+        raise ManyAnswers(r)
     
-    if len(r['results']['bindings']) == 0:
-        raise RuntimeError("NO results!")
+    if len(r) == 0:
+        raise NoAnswers() 
 
-    r = r['results']['bindings'][0]
+    r = r[0]
 
-    if todict:
-        return { k: v['value'] for k, v in r.items() }
-    else:
-        return r['results']['bindings'][0]
+    return r
 
 @cli.command("delete")
 @click.argument("query")
