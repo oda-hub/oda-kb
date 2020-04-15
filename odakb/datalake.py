@@ -37,7 +37,7 @@ def cli():
 def get_minio_secret():
     failures = {}
     for n, m in {
-                "environ": lambda :os.environ['MINIO_KEY'],
+                "environ": lambda :os.environ['MINIO_KEY'].strip(),
                 "homefile": lambda :open(os.environ.get('HOME')+"/.minio").read().strip(),
                 }.items():
         try:
