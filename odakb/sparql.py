@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 import io
 import time
 import glob
@@ -170,8 +171,8 @@ def get_jena_password():
     tried = []
 
     for n, m in {
-                'keyring': lambda:keyring.get_password("jena", "admin"),
                 'environ': lambda:os.environ['JENA_PASSWORD'],
+                'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
             r = m()
@@ -195,21 +196,21 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
     if debug:
         logger.info("data: %s", repr(data))
         
-    if endpoint == "update":    
-        auth=requests.auth.HTTPBasicAuth("admin", 
-                                         get_jena_password())
-    else:
-        auth=None
 
     t0=time.time()
 
+    oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", "https://sparql.odahub.io/dataanalysis")
+
     if endpoint == "update":    
-        r=requests.post('https://sparql.odahub.io/dataanalysis/'+endpoint,
+        auth=requests.auth.HTTPBasicAuth("admin", 
+                                         get_jena_password())
+        r=requests.post(oda_sparql_root+"/"+endpoint,
                         data=data,
                         auth=auth
                         )
     else:
-        r=requests.post('https://sparql.odahub.io/dataanalysis/'+endpoint,
+        auth=None
+        r=requests.post(oda_sparql_root+"/"+endpoint,
                        params=dict(query=data)
                     )
 
@@ -297,12 +298,28 @@ def _delete(query=None, prefixes=None, debug=True, todict=True):
 
     r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
 
-@cli.command("rule")
+@cli.command("reason")
 @click.argument("query")
 @click.argument("fact")
+@click.option("--commit/--no-commit", default=False)
 @unclick
-def _reason(query, fact):
-    pass
+def _reason(query, fact, commit=False):
+    new_facts = []
+
+    for r in select(query):
+        print("applying", r, "to fact", fact)
+
+        for k, v in r.items():
+            fact = re.sub(r"\?%s\b"%k, "<%s>"%v, fact)
+
+        new_facts.append(fact)
+
+        print("new fact:", fact)
+
+        if commit:
+            insert(fact)
+
+    return new_facts
 
 @cli.command()
 def version():
