@@ -19,6 +19,10 @@ or
 
 ?x oda:blocks ?y => ?y oda:blocked-by ?x
 
+rule might generate another rule
+
+emergent geometry
+
 
 # ontology?
 

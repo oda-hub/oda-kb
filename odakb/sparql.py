@@ -291,13 +291,57 @@ def _select_one(query=None, prefixes=None, debug=True):
 
     return r
 
+def render_uri(uri, entry):
+    r = uri
+
+    if uri.startswith("?"):
+        r = entry[uri[1:]]
+
+    if r.startswith("http"):
+        r = "<%s>"%r
+
+    if not (r.startswith("oda:") or r.startswith("<")):
+        r = "\"%s\""%r
+
+    return r
+
+def render_rdf(query, entry):
+    s, p, o = map(lambda u: render_uri(u, entry), query.split())
+
+    return "%s %s %s"%(s, p, o)
+
 @cli.command("delete")
 @click.argument("query")
+@click.option("-a/-na", default=False)
+@click.option("-n", default=10)
 @unclick
-def _delete(query=None, prefixes=None, debug=True, todict=True):
-    data = compose_sparql("DELETE DATA {\n" + query + "\n}", prefixes)
+def _delete(query=None, prefixes=None, debug=True, todict=True, a=False, n=10):
+    if not a:
+        data = compose_sparql("DELETE DATA {\n" + query + "\n}", prefixes)
 
-    r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+        r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+    else:
+        entries = select(query)
+
+        print("found entries to delete:\n")
+
+        rdf_es = []
+        for entry in entries:
+            print(entry)
+            
+            rdf = render_rdf(query, entry)
+            print("rdf", rdf)
+
+            rdf_es.append(rdf)
+
+        if len(rdf_es)<=n:
+            print("deleting...")
+
+            data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}", prefixes)
+            r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+        else:
+            print("refusing to delete %i > %i entries"%(len(rdf_es), n))
+
 
 @cli.command("reason")
 @click.argument("query")
