@@ -300,7 +300,7 @@ def render_uri(uri, entry):
     if r.startswith("http"):
         r = "<%s>"%r
 
-    if not (r.startswith("oda:") or r.startswith("<")):
+    if not any([r.startswith(p) for p in ["<", "oda:", "data:"]]):
         r = "\"%s\""%r
 
     return r
