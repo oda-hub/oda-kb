@@ -39,6 +39,8 @@ default_prefixes=[]
 
 default_graphs=[]
 
+# TODO: allow to produce local context, also offline
+
 def parse_shortcuts(graph_serial):
     g = graph_serial.replace("="," an:equalTo ")
     if not g.strip().endswith("."):
@@ -291,7 +293,10 @@ def _select_one(query=None, prefixes=None, debug=True):
 
     return r
 
-def render_uri(uri, entry):
+def render_uri(uri, entry=None):
+    if entry is None:
+        entry={}
+
     r = uri
 
     if uri.startswith("?"):
