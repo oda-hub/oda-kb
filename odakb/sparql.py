@@ -317,10 +317,11 @@ def render_rdf(query, entry):
 
 @cli.command("delete")
 @click.argument("query")
+@click.argument("fact", required=False)
 @click.option("-a/-na", default=False)
 @click.option("-n", default=10)
 @unclick
-def _delete(query=None, prefixes=None, debug=True, todict=True, a=False, n=10):
+def _delete(query=None, fact=None, prefixes=None, debug=True, todict=True, a=False, n=10):
     if not a:
         data = compose_sparql("DELETE DATA {\n" + query + "\n}", prefixes)
 
@@ -330,11 +331,14 @@ def _delete(query=None, prefixes=None, debug=True, todict=True, a=False, n=10):
 
         print("found entries to delete:\n")
 
+        if fact is None:
+            fact = query
+
         rdf_es = []
         for entry in entries:
             print(entry)
-            
-            rdf = render_rdf(query, entry)
+
+            rdf = render_rdf(fact, entry)
             print("rdf", rdf)
 
             rdf_es.append(rdf)
@@ -351,7 +355,7 @@ def _delete(query=None, prefixes=None, debug=True, todict=True, a=False, n=10):
 @cli.command("reason")
 @click.argument("query")
 @click.argument("fact")
-@click.option("--commit/--no-commit", default=False)
+@click.option("-c/-nc",'--commit/--no-commit', default=False)
 @unclick
 def _reason(query, fact, commit=False):
     new_facts = []
