@@ -5,9 +5,14 @@ make all thinks referring to root
 
 # run
 
-execution method
+execution method:
 
-# process
+* active execution
+* active request
+* worker
+* callback
+
+# reasonong
 disconneceted realms
 reason derivations 
 
