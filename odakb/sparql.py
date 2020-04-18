@@ -378,14 +378,14 @@ def render_rdf(query, entry):
 @cli.command("delete")
 @click.argument("query")
 @click.argument("fact", required=False)
-@click.option("-a", '--all-entries', default=False)
+@click.option("-a", '--all-entries', default=False, is_flag=True)
 @click.option("-n", default=10)
 @unclick
 def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
-    if not a:
+    if not all_entries:
         data = compose_sparql("DELETE DATA {\n" + query + "\n}")
 
-        r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+        r = execute_sparql(data, 'update', invalid_raise=True)
     else:
         entries = select(query)
 
@@ -407,7 +407,7 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
             logger.info("deleting...")
 
             data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}")
-            r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
+            r = execute_sparql(data, 'update', invalid_raise=True)
         else:
             logger.warning("refusing to delete %i > %i entries"%(len(rdf_es), n))
 
