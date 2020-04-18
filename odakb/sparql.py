@@ -6,12 +6,14 @@ import time
 import glob
 import sys
 import yaml
+import rdflib
 import pkg_resources
 import requests
 import importlib
 
 import keyring
 import click
+import logging
 
 from os import getenv
 from keyrings.cryptfile.cryptfile import CryptFileKeyring
@@ -21,25 +23,42 @@ keyring.set_keyring(kr)
 
 keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
 
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("odakb.sparql")
+#logger.setLevel(logging.INFO)
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+def setup_logging(level=logging.INFO):
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    
+    logger.setLevel(level)
 
 
 default_prefixes=[]
-
 default_graphs=[]
 
 # TODO: allow to produce local context, also offline
+
+G = rdflib.Graph()
+    
+
+def dump_loggers():
+    for k,v in  logging.Logger.manager.loggerDict.items()  :
+        print('+ [%s] {%s} ' % (str.ljust( k, 20)  , str(v.__class__)[8:-2]) ) 
+        if not isinstance(v, logging.PlaceHolder):
+            for h in v.handlers:
+                print('     +++',str(h.__class__)[8:-2] )
+
+def set_silent():
+    setup_logging(logging.ERROR)
+
+def set_debug():
+    setup_logging(logging.DEBUG)
+    
 
 def parse_shortcuts(graph_serial):
     g = graph_serial.replace("="," an:equalTo ")
@@ -121,7 +140,8 @@ def process_graph_loaders(G):
             raise Exception("unable to exploit run method %s"%rm)
 
 
-load_defaults(default_prefixes, default_graphs)
+def init():
+    load_defaults(default_prefixes, default_graphs)
 
 query_stats = None
 
@@ -134,8 +154,22 @@ def unclick(f):
 
 
 @click.group()
-def cli():
-    pass
+@click.option("-d", "--debug", is_flag=True, default=False)
+@click.option("-q", "--quiet", is_flag=True, default=False)
+@click.option("-p", "--prefixes", default=None)
+def cli(debug, quiet, prefixes):
+    if debug and quiet:
+        raise Exception("can not be quiet and debug!")
+
+    if debug:
+        setup_logging(logging.DEBUG)
+        logger.error('test erro')
+        logger.info('test erro')
+    elif quiet:
+        setup_logging(logging.ERROR)
+    else:
+        setup_logging()
+
 
 def reset_stats_collection():
     global query_stats
@@ -194,9 +228,8 @@ def compose_sparql(body, prefixes=None):
     return "\n".join(_prefixes)+"\n\n"+body
 
 
-def execute_sparql(data, endpoint, debug, invalid_raise):
-    if debug:
-        logger.info("data: %s", repr(data))
+def execute_sparql(data, endpoint, invalid_raise):
+    logger.debug("data: %s", repr(data))
         
 
     t0=time.time()
@@ -218,11 +251,9 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
 
     note_stats(spent_seconds=time.time()-t0, query_size=len(data))
     
-    if debug:
-        logger.info(r)
-        logger.info(r.text)
-
-        logger.info(report_stats())
+    logger.debug(r)
+    logger.debug(r.text)
+    logger.debug(report_stats())
 
     
     if invalid_raise:
@@ -237,37 +268,51 @@ def execute_sparql(data, endpoint, debug, invalid_raise):
 @cli.command("update")
 @click.argument("query")
 @unclick
-def _update(query, prefixes=None, debug=True, invalid_raise=True):
-    data = compose_sparql(query, prefixes)
+def _update(query, invalid_raise=True):
+    data = compose_sparql(query)
 
-    return execute_sparql(data, 'update', debug=debug, invalid_raise=invalid_raise)
+    return execute_sparql(data, 'update', invalid_raise=invalid_raise)
 
 @cli.command("insert")
 @click.argument("query")
 #@click.pass_context
 @unclick
-def _insert(query=None, prefixes=None, debug=True):
-    #return ctx.invoke(update, query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
-    return update(query="INSERT DATA {\n" + query  + "\n}", prefixes=prefixes)
+def _insert(query=None):
+    return update(query="INSERT DATA {\n" + query  + "\n}")
 
-def create(entries, prefixes=None, debug=True):
-    return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}", prefixes)
+def create(entries):
+    
+    return update("INSERT DATA {\n" + ("\n".join(["%s %s %s ."%t3 for t3 in entries])) + "\n}")
 
-def query(query, prefixes=None, debug=True, invalid_raise=True):
-    data = compose_sparql(query, prefixes)
+def query(query, invalid_raise=True):
+    data = compose_sparql(query)
 
-    return execute_sparql(data, 'query',  debug=debug, invalid_raise=invalid_raise)
+    return execute_sparql(data, 'query', invalid_raise=invalid_raise)
 
 @cli.command("select")
 @click.argument("query")
+@click.option("-j", "--json", "tojson", is_flag=True)
+@click.option("-r", "--rdf", "tordf", is_flag=True)
 @unclick
-def _select(query=None, prefixes=None, debug=True, todict=True):
-    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}", prefixes)
+def _select(query=None, todict=True, tojson=False, tordf=False):
+    init()
 
-    r = execute_sparql(data, 'query',  debug=debug, invalid_raise=True)
+    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}")
+
+    r = execute_sparql(data, 'query', invalid_raise=True)
+    entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
+
+    if tordf:
+        rdf = "\n".join(default_prefixes)
+        rdf += "\n\n" + "\n".join([render_rdf(query, e) for e in entries])
+        print(rdf)
+        return rdf
+
+    if tojson:
+        pass
 
     if todict:
-        return [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
+        return entries 
     else:
         return r
 
@@ -280,7 +325,7 @@ class NoAnswers(Exception):
 @cli.command("select-one")
 @click.argument("query")
 @unclick
-def _select_one(query=None, prefixes=None, debug=True):
+def _select_one(query=None):
     r = select(query)
 
     if len(r) > 1:
@@ -318,12 +363,12 @@ def render_rdf(query, entry):
 @cli.command("delete")
 @click.argument("query")
 @click.argument("fact", required=False)
-@click.option("-a/-na", default=False)
+@click.option("-a", '--all-entries', default=False)
 @click.option("-n", default=10)
 @unclick
-def _delete(query=None, fact=None, prefixes=None, debug=True, todict=True, a=False, n=10):
+def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
     if not a:
-        data = compose_sparql("DELETE DATA {\n" + query + "\n}", prefixes)
+        data = compose_sparql("DELETE DATA {\n" + query + "\n}")
 
         r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
     else:
@@ -346,7 +391,7 @@ def _delete(query=None, fact=None, prefixes=None, debug=True, todict=True, a=Fal
         if len(rdf_es)<=n:
             print("deleting...")
 
-            data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}", prefixes)
+            data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}")
             r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
         else:
             print("refusing to delete %i > %i entries"%(len(rdf_es), n))
