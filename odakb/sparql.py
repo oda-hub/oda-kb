@@ -2,6 +2,8 @@ import copy
 import os
 import re
 import io
+import json
+import pprint
 import time
 import glob
 import sys
@@ -291,25 +293,35 @@ def query(query, invalid_raise=True):
 
 @cli.command("select")
 @click.argument("query")
+@click.argument("form", required=False, default=None)
 @click.option("-j", "--json", "tojson", is_flag=True)
 @click.option("-r", "--rdf", "tordf", is_flag=True)
 @unclick
-def _select(query=None, todict=True, tojson=False, tordf=False):
+def _select(query=None, form=None, todict=True, tojson=False, tordf=False):
     init()
+
+    if form is None:
+        form = query
 
     data = compose_sparql("SELECT * WHERE {\n" + query + "\n}")
 
     r = execute_sparql(data, 'query', invalid_raise=True)
     entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
 
-    if tordf:
+    if tordf or tojson:
         rdf = "\n".join(default_prefixes)
-        rdf += "\n\n" + "\n".join([render_rdf(query, e) for e in entries])
+        rdf += "\n\n" + "\n".join([render_rdf(form, e)+" ." for e in entries])
+
+    if tordf:
         print(rdf)
         return rdf
 
     if tojson:
-        pass
+        g = rdflib.Graph().parse(data=rdf, format='turtle') 
+        jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True).decode()
+        print(jsonld)
+        return jsonld
+
 
     if todict:
         return entries 
