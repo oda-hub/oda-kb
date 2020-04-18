@@ -214,10 +214,10 @@ def get_jena_password():
             }.items():
         try:
             r = m()
-            print("good JENA password from", n)
+            logger.info("good JENA password from %s", n)
             return r
         except Exception as e:
-            print("failed", n, m, e)
+            logging.warning("failed %s %s %s", n, m, e)
             tried.append([n, m, e])
 
     raise RuntimeError("no good jena password, tried: "+repr(tried))
@@ -280,6 +280,7 @@ def _update(query, invalid_raise=True):
 #@click.pass_context
 @unclick
 def _insert(query=None):
+    init()
     return update(query="INSERT DATA {\n" + query  + "\n}")
 
 def create(entries):
@@ -322,6 +323,8 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False):
         print(jsonld)
         return jsonld
 
+    for e in entries:
+        logger.info("found fact: %s", e)
 
     if todict:
         return entries 
@@ -386,27 +389,27 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
     else:
         entries = select(query)
 
-        print("found entries to delete:\n")
+        logger.info("found entries to delete:\n")
 
         if fact is None:
             fact = query
 
         rdf_es = []
         for entry in entries:
-            print(entry)
+            logger.info(entry)
 
             rdf = render_rdf(fact, entry)
-            print("rdf", rdf)
+            logger.info("rdf %s", rdf)
 
             rdf_es.append(rdf)
 
         if len(rdf_es)<=n:
-            print("deleting...")
+            logger.info("deleting...")
 
             data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}")
             r = execute_sparql(data, 'update',  debug=debug, invalid_raise=True)
         else:
-            print("refusing to delete %i > %i entries"%(len(rdf_es), n))
+            logger.warning("refusing to delete %i > %i entries"%(len(rdf_es), n))
 
 
 @cli.command("reason")
@@ -417,18 +420,27 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
 def _reason(query, fact, commit=False):
     new_facts = []
 
+    logger.info("reason from query %s to fact %s", query, fact)
+
     for r in select(query):
-        print("applying", r, "to fact", fact)
+        logger.debug("\napplying %s to fact %s", r, fact)
 
+        newfact = fact
         for k, v in r.items():
-            fact = re.sub(r"\?%s\b"%k, "<%s>"%v, fact)
+            patt=r"\?%s\b"%k
+            val="<%s>"%v
+            logger.debug("substituting variable %s with %s in %s", patt, val, fact)
+            newfact = re.sub(patt, val, newfact)
 
-        new_facts.append(fact)
+        new_facts.append(newfact)
 
-        print("new fact:", fact)
+        logger.info("new fact: %s", newfact)
 
         if commit:
-            insert(fact)
+            insert(newfact)
+
+    if not commit:
+        logger.warning("not commiting - no facts applied!")
 
     return new_facts
 
