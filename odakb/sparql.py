@@ -402,7 +402,10 @@ def render_uri(uri, entry=None):
         if r.startswith(s):
             return "<"+l.strip("<>")+r[len(s):]+">"
 
-    return "\"%s\""%r
+    if r == "a":
+        return r
+
+    return "\"%s\""%r.strip("\"")
 
 def nuri(uri):
     return render_uri(uri)
