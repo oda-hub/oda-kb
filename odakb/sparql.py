@@ -292,6 +292,27 @@ def query(query, invalid_raise=True):
 
     return execute_sparql(data, 'query', invalid_raise=invalid_raise)
 
+def tuple_list_to_turtle(tl):
+    rdf = "\n".join(default_prefixes)
+        
+    rdf += "\n\n"
+
+    for t in tl:
+        if isinstance(t, str):
+            s = t
+            print("from string:", s)
+        elif isinstance(t, list) or isinstance(t, tuple):
+            s = " ".join(map(render_uri, t))
+
+            print("from list:", s)
+        else:
+            raise RuntimeError()
+        
+        rdf += "\n"+s+" ."
+
+
+    return rdf
+
 @cli.command("select")
 @click.argument("query")
 @click.argument("form", required=False, default=None)
@@ -310,8 +331,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False):
     entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
 
     if tordf or tojson:
-        rdf = "\n".join(default_prefixes)
-        rdf += "\n\n" + "\n".join([render_rdf(form, e)+" ." for e in entries])
+        rdf = tuple_list_to_turtle([render_rdf(form, e) for e in entries])
 
     if tordf:
         print(rdf)
@@ -357,12 +377,12 @@ def render_uri(uri, entry=None):
     if entry is None:
         entry={}
 
-    r = uri
+    r = uri.strip()
 
     if uri.startswith("?"):
         r = entry[uri[1:]]
 
-    if r.startswith("http"):
+    if r.startswith("http://"):
         r = "<%s>"%r
 
     if not any([r.startswith(p) for p in ["<", "oda:", "data:"]]):
