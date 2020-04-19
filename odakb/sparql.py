@@ -260,6 +260,9 @@ def execute_sparql(data, endpoint, invalid_raise):
     
     if invalid_raise:
         if r.status_code not in [200, 201, 204]:
+            logger.error("SPARQL failed")
+            logger.error("failed query")
+            print(data)
             raise SPARQLException(r.status_code, r.text)
 
     try:
@@ -373,6 +376,9 @@ def _select_one(query=None):
 
     return r
 
+class InvalidURI(Exception):
+    pass
+
 def render_uri(uri, entry=None):
     if entry is None:
         entry={}
@@ -384,11 +390,22 @@ def render_uri(uri, entry=None):
 
     if r.startswith("http://"):
         r = "<%s>"%r
+        return r
 
-    if not any([r.startswith(p) for p in ["<", "oda:", "data:"]]):
-        r = "\"%s\""%r
+    if r.startswith("<"):
+        if not r.strip("<>").startswith("http://"):
+            raise InvalidURI("only accept http uri, not this: %s%r")
+        return r
+    
+    for p in default_prefixes:
+        _, s, l = p.split()
+        if r.startswith(s):
+            return "<"+l.strip("<>")+r[len(s):]+">"
 
-    return r
+    return "\"%s\""%r
+
+def nuri(uri):
+    return render_uri(uri)
 
 def render_rdf(query, entry):
     s, p, o = map(lambda u: render_uri(u, entry), query.split())
@@ -402,6 +419,8 @@ def render_rdf(query, entry):
 @click.option("-n", default=10)
 @unclick
 def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
+    init()
+
     if not all_entries:
         data = compose_sparql("DELETE DATA {\n" + query + "\n}")
 
@@ -427,7 +446,12 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
             logger.info("deleting...")
 
             data = compose_sparql("DELETE DATA {\n" + " .\n".join(rdf_es) + "\n}")
-            r = execute_sparql(data, 'update', invalid_raise=True)
+
+            try:
+                r = execute_sparql(data, 'update', invalid_raise=True)
+            except Exception as e:
+                logger.error("problem with request: %s", data)
+                raise
         else:
             logger.warning("refusing to delete %i > %i entries"%(len(rdf_es), n))
 
