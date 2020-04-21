@@ -229,8 +229,45 @@ def compose_sparql(body, prefixes=None):
 
     return "\n".join(_prefixes)+"\n\n"+body
 
+# curl http://fuseki.internal.odahub.io/dataanalysis --data query='PREFIX oda: <http://odahub.io/ontology#>  CONSTRUCT WHERE {?w a oda:test; ?b ?c  . ?x ?y ?w} ' | python -c 'import sys, rdflib; print(rdflib.Graph().parse(data=sys.stdin.read(), format="turtle").serialize(format="json-ld", indent=4, sort_keys=True).decode())' | jq '.[]'
 
-def execute_sparql(data, endpoint, invalid_raise):
+@cli.command("construct")
+@click.argument("data")
+@click.option("-j", "--jsonld", is_flag=True, default=False)
+def _construct(data, jsonld):
+    r = construct(data, jsonld)
+
+    if jsonld:
+        print(json.dumps(r, indent=2, sort_keys=True))
+    else:
+        print(r)
+
+
+def construct(data, jsonld):
+    init()
+
+    data = compose_sparql("CONSTRUCT WHERE {\n" + data + "\n}")
+
+    r = execute_sparql(compose_sparql(data), "query", True, True)
+
+    if jsonld:
+        j = rdflib.Graph().parse(data=r, format="turtle").serialize(format="json-ld", indent=4, sort_keys=True).decode()
+        return json.loads(j)
+    else:
+        return r
+
+
+@cli.command("query")
+@click.argument("data")
+@click.option("-e", "--endpoint", default="query")
+def _execute_sparql(data, endpoint, jsonld):
+    init()
+    r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False)
+
+    for e in r['results']['bindings']:
+        logger.info("entry: %s", e)
+
+def execute_sparql(data, endpoint, invalid_raise, raw=False):
     logger.debug("data: %s", repr(data))
         
 
@@ -264,6 +301,9 @@ def execute_sparql(data, endpoint, invalid_raise):
             logger.error("failed query")
             print(data)
             raise SPARQLException(r.status_code, r.text)
+
+    if raw:
+        return r.text
 
     try:
         return r.json()
