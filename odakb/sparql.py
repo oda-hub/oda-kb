@@ -260,7 +260,7 @@ def construct(data, jsonld):
 @cli.command("query")
 @click.argument("data")
 @click.option("-e", "--endpoint", default="query")
-def _execute_sparql(data, endpoint, jsonld):
+def _execute_sparql(data, endpoint):
     init()
     r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False)
 
@@ -343,11 +343,11 @@ def tuple_list_to_turtle(tl):
     for t in tl:
         if isinstance(t, str):
             s = t
-            print("from string:", s)
+            logger.debug("from string: %s", s)
         elif isinstance(t, list) or isinstance(t, tuple):
             s = " ".join(map(render_uri, t))
 
-            print("from list:", s)
+            logger.debug("from list: %s", s)
         else:
             raise RuntimeError()
         
@@ -360,31 +360,65 @@ def tuple_list_to_turtle(tl):
 @click.argument("query")
 @click.argument("form", required=False, default=None)
 @click.option("-j", "--json", "tojson", is_flag=True)
+@click.option("-d", "--jdict", "tojdict", is_flag=True)
 @click.option("-r", "--rdf", "tordf", is_flag=True)
 @unclick
-def _select(query=None, form=None, todict=True, tojson=False, tordf=False):
+def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False):
     init()
 
     if form is None:
         form = query
 
-    data = compose_sparql("SELECT * WHERE {\n" + query + "\n}")
+    data = compose_sparql("SELECT DISTINCT * WHERE {\n" + query + "\n}")
 
     r = execute_sparql(data, 'query', invalid_raise=True)
     entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
 
-    if tordf or tojson:
+    if tordf or tojson or tojdict:
         rdf = tuple_list_to_turtle([render_rdf(form, e) for e in entries])
 
     if tordf:
         print(rdf)
         return rdf
 
-    if tojson:
+    if tojson or tojdict:
         g = rdflib.Graph().parse(data=rdf, format='turtle') 
         jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True).decode()
+
+    if tojson:
         print(jsonld)
         return jsonld
+    
+    if tojdict:
+        prefix_dict = {}
+        for pl in default_prefixes:
+            p, u = pl.split()[1:]
+            prefix_dict[p] = u.strip("<>")
+
+        def shorten_uri(u):
+            for k, v in prefix_dict.items():
+                if u.startswith(v):
+                    return k[:-1]+"_"+u[len(v):]
+            return u
+
+        def jsonld2dict(j):
+            if isinstance(j, list):
+                if all(['@id' in i for i in j]):
+                    return {shorten_uri(i['@id']):jsonld2dict(i) for i in j}
+                
+                if all(['@value' in i for i in j]):
+                    return [ i['@value'] for i in j]
+
+            if isinstance(j, dict):
+                return {shorten_uri(k): jsonld2dict(v) for k,v in j.items()}
+
+            return j
+
+        jdict = jsonld2dict(json.loads(jsonld))
+        
+        print(json.dumps(jdict, sort_keys=True, indent=4))
+
+        return jdict
 
     for e in entries:
         logger.info("found fact: %s", e)
