@@ -398,7 +398,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         def shorten_uri(u):
             for k, v in prefix_dict.items():
                 if u.startswith(v):
-                    return k[:-1]+"_"+u[len(v):]
+                    return k[:-1]+":"+u[len(v):]
             return u
 
         def jsonld2dict(j):
@@ -485,7 +485,7 @@ def nuri(uri):
     return render_uri(uri)
 
 def render_rdf(query, entry):
-    s, p, o = map(lambda u: render_uri(u, entry), query.split())
+    s, p, o = map(lambda u: render_uri(u, entry), query.split(None, 2))
 
     return "%s %s %s"%(s, p, o)
 
