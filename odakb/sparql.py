@@ -484,7 +484,10 @@ def render_uri(uri, entry=None):
 def nuri(uri):
     return render_uri(uri)
 
-def render_rdf(query, entry):
+def render_rdf(query, entry=None):
+    if entry is None:
+        entry = {}
+
     s, p, o = map(lambda u: render_uri(u, entry), query.split(None, 2))
 
     return "%s %s %s"%(s, p, o)
