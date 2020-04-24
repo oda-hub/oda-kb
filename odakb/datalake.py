@@ -1,6 +1,7 @@
 import cwltool.factory
 import requests
 import pprint
+import base64
 import os
 import sys
 import json
@@ -119,6 +120,14 @@ def _put(bucket, meta, data):
         logger.info("reading data from %s",fn)
         data=open(fn).read()
 
+@cli.command("put-image")
+@click.argument("fn")
+def _put_image(fn):
+    logger.info("reading data from %s",fn)
+    data=open(fn, "rb").read()
+
+    b = store({'image':base64.b64encode(data).decode()})
+    print(b)
     
 
 def store(data, meta=None, bucket_name = None):
