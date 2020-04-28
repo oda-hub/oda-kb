@@ -184,10 +184,8 @@ def stop_stats_collection():
 def note_stats(**kwargs):
     global query_stats
 
-    if query_stats is None:
-        query_stats = []
-
-    query_stats.append(kwargs)
+    if query_stats is not None:
+        query_stats.append(kwargs)
 
 def report_stats():
     logger.info(query_stats)
