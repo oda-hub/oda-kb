@@ -361,13 +361,15 @@ def tuple_list_to_turtle(tl):
 @click.option("-d", "--jdict", "tojdict", is_flag=True)
 @click.option("-r", "--rdf", "tordf", is_flag=True)
 @unclick
-def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False):
+def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False, only="*"):
     init()
 
     if form is None:
         form = query
 
-    data = compose_sparql("SELECT DISTINCT * WHERE {\n" + query + "\n}")
+    data = compose_sparql(f"SELECT DISTINCT {only} WHERE {{ {query} }}")
+
+    print("data:", data)
 
     r = execute_sparql(data, 'query', invalid_raise=True)
     entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
