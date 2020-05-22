@@ -258,20 +258,24 @@ def construct(data, jsonld):
 @cli.command("query")
 @click.argument("data")
 @click.option("-e", "--endpoint", default="query")
-def _execute_sparql(data, endpoint):
+@click.option("-s", "--service", default=None)
+def _execute_sparql(data, endpoint, service):
     init()
-    r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False)
+    r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False, service=service)
 
     for e in r['results']['bindings']:
         logger.info("entry: %s", e)
 
-def execute_sparql(data, endpoint, invalid_raise, raw=False):
+def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
         
 
     t0=time.time()
 
-    oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", "https://sparql.odahub.io/dataanalysis")
+    if service is None:
+        oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", "https://sparql.odahub.io/dataanalysis")
+    else:
+        oda_sparql_root = service
 
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
@@ -280,9 +284,14 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False):
                         data=data,
                         auth=auth
                         )
-    else:
+    elif endpoint == "query":
         auth=None
         r=requests.post(oda_sparql_root+"/"+endpoint,
+                       params=dict(query=data)
+                    )
+    else:
+        auth=None
+        r=requests.post(oda_sparql_root,
                        params=dict(query=data)
                     )
 
@@ -468,7 +477,7 @@ def render_uri(uri, entry=None):
 
     if r.startswith("<"):
         if not r.strip("<>").startswith("http://"):
-            raise InvalidURI("only accept http uri, not this: %s%r")
+            raise InvalidURI(f"only accept http uri, not this: {r}")
         return r
     
     for p in default_prefixes:
