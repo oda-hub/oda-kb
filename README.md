@@ -1,3 +1,9 @@
+# example
+
+```bash
+$ oda find --input oda:integral-scw --output oda:sky-image
+```
+
 # find
 
 start from root
