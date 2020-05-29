@@ -1,14 +1,5 @@
 _browser for services and code_
 
-# federate
-
-```bash
-$ oda knowledge -v
-local file://..
-http http://..
-sparql http://..
-```
-
 # example
 
 ```bash
@@ -27,6 +18,15 @@ oda-service:ii_skyimage
 
 $ oda run 
 
+```
+
+# federate
+
+```bash
+$ oda knowledge -v
+local file://..
+http http://..
+sparql http://..
 ```
 
 # find
