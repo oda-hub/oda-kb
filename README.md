@@ -1,5 +1,14 @@
 _browser for services and code_
 
+# federate
+
+```bash
+$ oda knowledge -v
+local file://..
+http http://..
+sparql http://..
+```
+
 # example
 
 ```bash
