@@ -307,6 +307,7 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
             logger.error("SPARQL failed")
             logger.error("failed query")
             print(data)
+            print(r.text)
             raise SPARQLException(r.status_code, r.text)
 
     if raw:
