@@ -4,5 +4,5 @@ test
 """
 
 
-#from odakb.evaluator import evaluate
+from odakb.evaluator import evaluate
 
