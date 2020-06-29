@@ -1,3 +1,34 @@
+_browser for services and code_
+
+# example
+
+```bash
+$ oda find --input oda:integral-scw --output oda:sky-image
+oda-ddosa:ii_skyimage
+    oda:input_scw oda:integral-scw;
+    oda:input_emin ivoa:emin;
+    oda:input_emax ivoa:emax;
+    oda:callType oda:ddamodule .
+
+oda-service:ii_skyimage
+    oda:input_scw oda:integral-scw;
+    oda:input_emin ivoa:emin;
+    oda:input_emax ivoa:emax;
+    oda:callType oda:odaapi .
+
+$ oda run 
+
+```
+
+# federate
+
+```bash
+$ oda knowledge -v
+local file://..
+http http://..
+sparql http://..
+```
+
 # find
 
 start from root
