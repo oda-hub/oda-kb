@@ -201,8 +201,11 @@ def resolve_callable(query):
         print("direct query to gitlab")
         return "http://odahub.io/callable/notebook", [query]
 
-    r=sp.select("<%s> oda:callableKind ?kind ."%query)
-    print(r)
+    try:
+        r = sp.select("<%s> oda:callableKind ?kind ."%query)
+        print(r)
+    except:
+        r = []
     
     if r == []:
         callable_kind="http://odahub.io/callable/notebook"
@@ -211,7 +214,10 @@ def resolve_callable(query):
     else:
         raise Exception("multiple callable: %s"%repr(r['results']['bindings']))
 
-    r=sp.select("<%s> oda:location ?location ."%query)
+    try:
+        r=sp.select("<%s> oda:location ?location ."%query)
+    except:
+        r=[]
     
     print(r)
 
