@@ -1,4 +1,4 @@
-import cwltool.factory
+import cwltool.factory # type: ignore
 import requests
 import pprint
 import base64
@@ -19,8 +19,8 @@ def get_logger(name):
 
 logger = get_logger(__name__)
 
-from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+from minio import Minio # type: ignore
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
              BucketAlreadyExists)
 
 @click.group()
@@ -81,13 +81,13 @@ def _delete(bucket):
     client = get_minio()
     try:
         for o in client.list_objects(bucket):
-            logger.info("found object", o)
+            logger.info("found object %s", o)
             client.remove_object(bucket, o.object_name)
 
         client.remove_bucket(bucket)
-        logger.info("removed bucket", bucket)
+        logger.info("removed bucket %s", bucket)
     except Exception as e:
-        logger.info("unable to remove bucket", bucket, e)
+        logger.info("unable to remove bucket %s %s", bucket, e)
 
 
    
@@ -184,23 +184,6 @@ def form_bucket_name(data):
 
     return bucket_name
 
-
-def self_test():
-    logger.info("loading", bucket_name)
-
-    try:
-        r = load(bucket_name)
-    except:
-        r = None
-
-    store(
-        dict(name=bucket_name, notebook_url="https://github.com/volodymyrss/cc-crab/blob/master/crab.ipynb", cwl=cwl_content), 
-        inputs, 
-        result_json, 
-        bucket_name
-    )
-
-    #create_record(inputs, result_json, bucket_name)
 
 if __name__ == "__main__":
     cli()

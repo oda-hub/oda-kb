@@ -1,12 +1,12 @@
-import cwltool.factory
+import cwltool.factory # type: ignore
 import requests
 import os
 import json
 import io
 import ast
 
-from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+from minio import Minio # type: ignore
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
              BucketAlreadyExists)
 
 def get_minio():

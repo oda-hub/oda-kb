@@ -15,8 +15,10 @@ import pkg_resources
 import odakb.sparql as sp
 import odakb.datalake as dl
 
+import numpy as np # type: ignore
+
 try:
-    import nb2workflow.nbadapter as nba
+    import nb2workflow.nbadapter as nba # type: ignore
 except Exception as e:
     print("unable to import evaluator for nba!", e)
 
@@ -25,9 +27,10 @@ except Exception as e:
 # enerative workflows are reificationo
 # facts and rules
 
+def placeholder(*a, **aa):
+    raise Exception("this should be replaced in runtime")
 
 def add_numpy_representers():
-    import numpy as np
 
     def numpy_representer_seq(dumper, data):
         return dumper.represent_sequence('!ndarray:', data.tolist())
@@ -279,18 +282,20 @@ def fetch_origins(origins, callable_kind, query):
     return None, []
 
 
-def query_args_kwargs2rdf(query, *args, **kwargs):
-    pass
+#def query_args_kwargs2rdf(query, *args, **kwargs):
+#    return
 
+
+evaluate = placeholder
 
 @click.command()
 @click.argument("query")
 @click.option("-r","--restrict")
 @sp.unclick
-def _evaluate(query, *args, **kwargs):
+def _evaluate(query=None, *args, **kwargs):
     restrict_execution_modes = kwargs.pop('restrict', "local,baobab") # None means all
 
-    Q = query_args_kwargs2rdf(query, *args, **kwargs)
+    #Q = query_args_kwargs2rdf(query, *args, **kwargs)
 
     restrict_execution_modes = restrict_execution_modes.split(",")
 
@@ -308,7 +313,6 @@ def _evaluate(query, *args, **kwargs):
             print("failed mode", execution_mode, e)
             raise 
 
-    
 
 
 def evaluate_local(query, *args, **kwargs):

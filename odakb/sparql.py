@@ -8,27 +8,25 @@ import time
 import glob
 import sys
 import yaml
-import rdflib
+import rdflib # type: ignore
 import pkg_resources
 import requests
+import typing
 import importlib
 
-import keyring
 import click
 import logging
 
 from os import getenv
-from keyrings.cryptfile.cryptfile import CryptFileKeyring
-kr = CryptFileKeyring()
-kr.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD") or None 
-keyring.set_keyring(kr)
 
-keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
+#import keyring
+#from keyrings.cryptfile.cryptfile import CryptFileKeyring
+#kr = CryptFileKeyring()
+#kr.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD") or None 
+#keyring.set_keyring(kr)
+#keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
 
-
-#logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("odakb.sparql")
-#logger.setLevel(logging.INFO)
 
 def setup_logging(level=logging.INFO):
     handler = logging.StreamHandler(sys.stdout)
@@ -40,13 +38,16 @@ def setup_logging(level=logging.INFO):
     logger.setLevel(level)
 
 
-default_prefixes=[]
-default_graphs=[]
-
 # TODO: allow to produce local context, also offline
 
 G = rdflib.Graph()
-    
+
+
+class LocalGraphClass:
+    default_prefixes = [] # type: typing.List
+    default_graphs = [] # type: typing.List
+
+LocalGraph = LocalGraphClass()
 
 def dump_loggers():
     for k,v in  logging.Logger.manager.loggerDict.items()  :
@@ -73,9 +74,9 @@ def load_graph(G, serial, shortcuts=False):
     if serial.startswith("https://"):
         G.load(serial)
     else:
-        logger.info("will load:", serial,"INFO")
+        logger.info("will load: %s", serial)
         G.parse(
-            data="\n".join(default_prefixes) + (lambda x:x if not shortcuts else parse_shortcuts)(serial),
+            data="\n".join(LocalGraph.default_prefixes) + (lambda x:x if not shortcuts else parse_shortcuts)(serial),
             format="turtle"
         )
 
@@ -118,8 +119,8 @@ def load_defaults(default_prefixes, default_graphs):
 
 
 def process_graph_loaders(G):
-    for default_graph in default_graphs:
-        logger.info("loading default graph", default_graph)
+    for default_graph in LocalGraph.default_graphs:
+        logger.info("loading default graph %s", default_graph)
         load_graph(G, default_graph)
 
     q = """
@@ -134,7 +135,7 @@ def process_graph_loaders(G):
     for loader, rm, loc in G.query(q):
         logger.info(loader, rm, loc)
         if str(rm) == "http://odahub.io/ontology#pythonModule":
-            logger.info("will load python module", loc)
+            logger.info("will load python module %s", loc)
             mn, fn = loc.split(".")
             m = importlib.import_module(mn)
             getattr(m, fn)(G)
@@ -143,7 +144,7 @@ def process_graph_loaders(G):
 
 
 def init():
-    load_defaults(default_prefixes, default_graphs)
+    load_defaults(LocalGraph.default_prefixes, LocalGraph.default_graphs)
 
 query_stats = None
 
@@ -159,7 +160,8 @@ def unclick(f):
 @click.option("-d", "--debug", is_flag=True, default=False)
 @click.option("-q", "--quiet", is_flag=True, default=False)
 @click.option("-p", "--prefixes", default=None)
-def cli(debug, quiet, prefixes):
+@click.option("-s", "--service", default=None)
+def cli(debug=False, quiet=False, prefixes=None, service=None):
     if debug and quiet:
         raise Exception("can not be quiet and debug!")
 
@@ -171,6 +173,8 @@ def cli(debug, quiet, prefixes):
         setup_logging(logging.ERROR)
     else:
         setup_logging()
+
+    LocalGraph.service = service
 
 
 def reset_stats_collection():
@@ -208,7 +212,7 @@ def get_jena_password():
 
     for n, m in {
                 'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
-                'keyring': lambda:keyring.get_password("jena", "admin"),
+                #'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
             r = m()
@@ -221,7 +225,7 @@ def get_jena_password():
     raise RuntimeError("no good jena password, tried: "+repr(tried))
 
 def compose_sparql(body, prefixes=None):
-    _prefixes = copy.deepcopy(default_prefixes)
+    _prefixes = copy.deepcopy(LocalGraph.default_prefixes)
     if prefixes is not None:
         _prefixes += prefixes
 
@@ -258,8 +262,7 @@ def construct(data, jsonld):
 @cli.command("query")
 @click.argument("data")
 @click.option("-e", "--endpoint", default="query")
-@click.option("-s", "--service", default=None)
-def _execute_sparql(data, endpoint, service):
+def _execute_sparql(data, endpoint="query", service=None):
     init()
     r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False, service=service)
 
@@ -318,6 +321,14 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     except:
         return {'problem-decoding': r.text}
 
+def placeholder(*a, **aa):
+    raise Exception("not overrided")
+    return a,aa
+
+update = placeholder
+select = placeholder
+insert = placeholder
+
 @cli.command("update")
 @click.argument("query")
 @unclick
@@ -344,7 +355,7 @@ def query(query, invalid_raise=True):
     return execute_sparql(data, 'query', invalid_raise=invalid_raise)
 
 def tuple_list_to_turtle(tl):
-    rdf = "\n".join(default_prefixes)
+    rdf = "\n".join(LocalGraph.default_prefixes)
         
     rdf += "\n\n"
 
@@ -401,7 +412,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
     
     if tojdict:
         prefix_dict = {}
-        for pl in default_prefixes:
+        for pl in LocalGraph.default_prefixes:
             p, u = pl.split()[1:]
             prefix_dict[p] = u.strip("<>")
 
@@ -481,7 +492,7 @@ def render_uri(uri, entry=None):
             raise InvalidURI(f"only accept http uri, not this: {r}")
         return r
     
-    for p in default_prefixes:
+    for p in LocalGraph.default_prefixes:
         _, s, l = p.split()
         if r.startswith(s):
             return "<"+l.strip("<>")+r[len(s):]+">"
