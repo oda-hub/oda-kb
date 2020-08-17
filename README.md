@@ -1,6 +1,8 @@
-_browser for services and code_
+# ODA Knowledge Base
 
-# example
+_browse, retrieve, compute of data, services, and codes_
+
+# example *[prototype]*
 
 ```bash
 $ oda find --input oda:integral-scw --output oda:sky-image
@@ -44,6 +46,7 @@ execution method:
 * callback
 
 # reasonong
+
 disconneceted realms
 reason derivations 
 
@@ -62,4 +65,4 @@ emergent geometry
 
 # ontology?
 
-first but last
+[Ontologies](https://www.w3.org/standards/semanticweb/ontology) are important to classify, validate, and organize the KB.  Ontologies are commonly defined before the data is ingested, but can be (perhaps) also derived from the evolving data archive.
