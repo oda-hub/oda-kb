@@ -33,11 +33,15 @@ This capacity is used in several use cases.
 
 [Expertiment Results](https://in.odahub.io/odatests/data) are produced by an [application](https://github.com/volodymyrss/oda-experiments-deployment) based on the avaiable information about the platform capabilities. These results thereform prove the platform features.
 
-## instrument cross-calibration workflows
+### reaction to elusive scientific transients
 
-## instrument cross-calibration workflows
 
-## evolving context for the INTEGRAL data center operations 
+
+### instrument cross-calibration workflows
+
+Following a [proposal](https://zenodo.org/record/3559528), the KB organizes cross-calibration workflows, comparing the observation of the same astrophysical sources from different scientific instruments, observatories, telescopes, and detectors.
+
+### evolving context for the INTEGRAL data center operations 
 
 Quick look analysis for INTEGRAL first-level sciencific elaboration uses scientific context from ODA kb (in part, derived from the real-time literature).
 
