@@ -35,7 +35,9 @@ This capacity is used in several use cases.
 
 ### reaction to elusive scientific transients
 
+Studies of elusive short and energetic multi-messenger transients has become (in the last years) a core activity of many astrophysical observatories, including INTEGRAL.
 
+Combining parsed literature, dedicated events streams, and known scientific workflows (e.g. those provided by the ODA platform) the KB creates the basis for the realtime reation to new scientific events.
 
 ### instrument cross-calibration workflows
 
