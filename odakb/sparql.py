@@ -26,6 +26,15 @@ from os import getenv
 #keyring.set_keyring(kr)
 #keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
 
+def placeholder(*a, **aa): # else lint gets confused by our tricks
+    raise Exception("not overrided")
+    return a,aa
+
+update = placeholder
+select = placeholder
+insert = placeholder
+
+
 logger = logging.getLogger("odakb.sparql")
 
 def setup_logging(level=logging.INFO):
@@ -321,14 +330,6 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     except:
         return {'problem-decoding': r.text}
 
-def placeholder(*a, **aa):
-    raise Exception("not overrided")
-    return a,aa
-
-update = placeholder
-select = placeholder
-insert = placeholder
-
 @cli.command("update")
 @click.argument("query")
 @unclick
@@ -428,7 +429,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
                     return {shorten_uri(i['@id']):jsonld2dict(i) for i in j}
                 
                 if all(['@value' in i for i in j]):
-                    return [ i['@value'] for i in j]
+                    return list(sorted([ i['@value'] for i in j]))
 
             if isinstance(j, dict):
                 return {shorten_uri(k): jsonld2dict(v) for k,v in j.items()}
@@ -573,7 +574,7 @@ def _reason(query, fact, commit=False):
         newfact = fact
         for k, v in r.items():
             patt=r"\?%s\b"%k
-            val="<%s>"%v
+            val=nuri(v)
             logger.debug("substituting variable %s with %s in %s", patt, val, fact)
             newfact = re.sub(patt, val, newfact)
 
