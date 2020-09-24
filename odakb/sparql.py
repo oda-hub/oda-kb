@@ -411,7 +411,11 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
     print("data:", data)
 
     r = execute_sparql(data, 'query', invalid_raise=True)
-    entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
+
+    try:
+        entries = [ { k: v['value'] for k, v in _r.items() } for _r in r['results']['bindings'] ]
+    except Exception as e:
+        raise RuntimeError("problem interpreting SPARQL response: %s raw response %s", e, r)
 
     if tordf or tojson or tojdict:
         rdf = tuple_list_to_turtle([render_rdf(form, e) for e in entries])
