@@ -21,7 +21,8 @@ logger = get_logger(__name__)
 
 from minio import Minio # type: ignore
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
-             BucketAlreadyExists)
+             BucketAlreadyExists, NoSuchBucket)
+
 
 @click.group()
 def cli():
