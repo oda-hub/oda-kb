@@ -286,8 +286,11 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
 
     if service is None:
         oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", "https://sparql.odahub.io/dataanalysis")
+        logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
     else:
         oda_sparql_root = service
+
+    logger.info("ODA Knowledge Base (SPARQL) root is\033[32m%s\033[0m", oda_sparql_root)
 
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
@@ -316,11 +319,18 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     
     if invalid_raise:
         if r.status_code not in [200, 201, 204]:
-            logger.error("SPARQL failed")
-            logger.error("failed query")
-            print(data)
-            print(r.text)
-            raise SPARQLException(r.status_code, r.text)
+            logger.error("SPARQL failed code %s", r.status_code)
+            logge.debug("requested: %s", data)
+            logger.debug("serice returns %s", r.text)
+        
+            if r.status_code == 403:
+                m = f"Acceess To ODA KB denied at {oda_sparql_root}\n"
+                m += f"please refer to https://github.com/volodymyrss/oda-kb.git for more info "
+                logger.error(m)
+                raise SPARQLException(m,
+                                      r.status_code, r.text)
+            else:
+                raise SPARQLException(r.status_code, r.text)
 
     if raw:
         return r.text
