@@ -285,12 +285,17 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     t0=time.time()
 
     if service is None:
-        oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", "https://sparql.odahub.io/dataanalysis")
-        logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
+        oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", )
+        if oda_sparql_root:
+            logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
+        else:
+            oda_sparql_root = "https://sparql.odahub.io/dataanalysis"
+            logger.info("using default sparql endpoint")
+
     else:
         oda_sparql_root = service
 
-    logger.info("ODA Knowledge Base (SPARQL) root is\033[32m%s\033[0m", oda_sparql_root)
+    logger.info("ODA Knowledge Base (SPARQL) root is \033[32m%s\033[0m", oda_sparql_root)
 
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
@@ -318,9 +323,11 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
 
     
     if invalid_raise:
-        if r.status_code not in [200, 201, 204]:
+        if r.status_code in [200, 201, 204]:
+            logger.info("ODA KB responds %s", r.status_code)
+        else:
             logger.error("SPARQL failed code %s", r.status_code)
-            logge.debug("requested: %s", data)
+            logger.debug("requested: %s", data)
             logger.debug("serice returns %s", r.text)
         
             if r.status_code == 403:
