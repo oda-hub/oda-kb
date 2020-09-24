@@ -612,6 +612,10 @@ def _reason(query, fact, commit=False):
     return new_facts
 
 @cli.command()
+def info():
+    pass
+
+@cli.command()
 def version():
     click.echo(pkg_resources.get_distribution("oda-knowledge-base").version)
 
