@@ -8,6 +8,9 @@ def test_put():
     import odakb.sparql
 
     b = odakb.datalake.store(dict(test=1),dict(testdata=2))
+
+    assert odakb.datalake.exists(b)
+
     print(odakb.datalake.restore(b))
 
 #    fn="test-restore.json"

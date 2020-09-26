@@ -47,6 +47,10 @@ def get_minio():
               secret_key=get_minio_secret(),
               secure=False)
 
+def exists(bucket):
+    client = get_minio()
+    return client.bucket_exists(bucket)
+
 def restore(bucket, return_metadata = False):
     client = get_minio()
     try:
