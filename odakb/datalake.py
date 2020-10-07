@@ -83,6 +83,9 @@ def _restore(bucket, output=None):
 @cli.command("rm")
 @click.argument("bucket")
 def _delete(bucket):
+    delete(bucket)
+
+def delete(bucket):
     client = get_minio()
     try:
         for o in client.list_objects(bucket):
