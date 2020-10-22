@@ -399,14 +399,15 @@ def tuple_list_to_turtle(tl):
 @click.option("-j", "--json", "tojson", is_flag=True)
 @click.option("-d", "--jdict", "tojdict", is_flag=True)
 @click.option("-r", "--rdf", "tordf", is_flag=True)
+@click.option("-n", "--limit", "limit")
 @unclick
-def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False, only="*"):
+def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False, limit=100, only="*"):
     init()
 
     if form is None:
         form = query
 
-    data = compose_sparql(f"SELECT DISTINCT {only} WHERE {{ {query} }}")
+    data = compose_sparql(f"SELECT DISTINCT {only} WHERE {{ {query} }}" + (f" LIMIT {limit}" if limit is not None else ""))
 
     print("data:", data)
 
@@ -546,10 +547,11 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
 
     if not all_entries:
         data = compose_sparql("DELETE DATA {\n" + query + "\n}")
+        logger.debug(data)
 
         r = execute_sparql(data, 'update', invalid_raise=True)
     else:
-        entries = select(query)
+        entries = select(query, limit=n)
 
         logger.info("found entries to delete:\n")
 
