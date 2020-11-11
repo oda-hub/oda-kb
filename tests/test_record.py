@@ -46,3 +46,27 @@ def test_fail():
 
     odakb.sparql.report_stats()
 
+@pytest.mark.skipif(os.environ.get('MINIO_KEY') is None, reason="no writable minio")
+def test_put_file():
+    import base64
+    import odakb
+    import odakb.datalake
+    import odakb.sparql
+    import time
+    odakb.sparql.init()
+
+    fn = "file-" + time.strftime("%s") + "-"
+
+    b = odakb.datalake.store(
+            meta=dict(test=1),
+            data={
+                "testdata": 2,
+                fn + "_content": base64.b64encode("filecontent".encode()).decode(),
+            }
+        )
+
+    assert odakb.datalake.exists(b)
+
+    print(odakb.datalake.restore(b, return_metadata=True, write_files=True))
+
+    assert os.path.exists(fn)

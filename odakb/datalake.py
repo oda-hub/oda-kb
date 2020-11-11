@@ -59,10 +59,19 @@ def restore(bucket, return_metadata = False, write_files=False):
     except Exception as e:
         raise
 
+    decoded_data = json.load(data)
+
+    if write_files:
+        for k, v in decoded_data.items():
+            print("found key", k)
+            if k.endswith("_content"):
+                print("found content, requested to store file", k, "size", len(v))
+                open(k[:-len("_content")], "wb").write(base64.b64decode(v))
+
     if return_metadata:
-        return meta, json.load(data)
+        return meta, decoded_data
     else:
-        return json.load(data)
+        return decoded_data
 
 @cli.command("get")
 @click.argument("bucket")
