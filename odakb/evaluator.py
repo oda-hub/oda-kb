@@ -317,6 +317,7 @@ def _evaluate(query=None, *args, **kwargs):
 
 def evaluate_local(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
+    write_files = kwargs.pop('_write_files', False)
 
     callable_kind, origins = resolve_callable(query)       
 
@@ -345,7 +346,7 @@ def evaluate_local(query, *args, **kwargs):
     
     if cached:
         try:
-            d = dl.restore(uname)
+            d = dl.restore(uname, write_files=write_files)
             print("got from bucket", uname)
             return d
         except Exception as e:
