@@ -318,6 +318,7 @@ def _evaluate(query=None, *args, **kwargs):
 def evaluate_local(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
     write_files = kwargs.pop('_write_files', False)
+    return_metadata = kwargs.pop('_return_metadata', False)
 
     callable_kind, origins = resolve_callable(query)       
 
@@ -346,7 +347,7 @@ def evaluate_local(query, *args, **kwargs):
     
     if cached:
         try:
-            d = dl.restore(uname, write_files=write_files)
+            d = dl.restore(uname, write_files=write_files, return_metadata=return_metadata)
             print("got from bucket", uname)
             return d
         except Exception as e:
@@ -371,7 +372,10 @@ def evaluate_local(query, *args, **kwargs):
     except Exception as e:
         print("problem storing to the datalake", e)
 
-    return d
+    if return_metadata:
+        return metadata, d
+    else:
+        return d
 
             
 
