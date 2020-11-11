@@ -122,7 +122,7 @@ def build_local_context(query, origins, callable_kind):
     return context
 
 def unique_name(query, args, kwargs, context):
-    print("unique name for", query,kwargs,context)
+    print("unique name for", query, kwargs, context)
 
     s=io.StringIO()
     yaml.safe_dump(args, s)

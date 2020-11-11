@@ -51,7 +51,7 @@ def exists(bucket):
     client = get_minio()
     return client.bucket_exists(bucket)
 
-def restore(bucket, return_metadata = False):
+def restore(bucket, return_metadata = False, write_files=False):
     client = get_minio()
     try:
         data = client.get_object(bucket, 'data')
@@ -127,6 +127,8 @@ def _put(bucket, meta, data):
         fn = data[1:]
         logger.info("reading data from %s",fn)
         data=open(fn).read()
+
+    store(data, meta)
 
 @cli.command("put-image")
 @click.argument("fn")

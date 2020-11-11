@@ -6,6 +6,7 @@ def test_put():
     import odakb
     import odakb.datalake
     import odakb.sparql
+    odakb.sparql.init()
 
     b = odakb.datalake.store(dict(test=1),dict(testdata=2))
 
@@ -31,6 +32,7 @@ def test_fail():
     import odakb
     import odakb.datalake
     import odakb.sparql
+    odakb.sparql.init()
     
     try:
         c = odakb.sparql.create([
