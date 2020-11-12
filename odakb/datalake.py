@@ -10,6 +10,8 @@ import ast
 import click
 import hashlib
 
+
+
 import logging
  
 def get_logger(name):
@@ -18,6 +20,11 @@ def get_logger(name):
     return logger
 
 logger = get_logger(__name__)
+
+try:
+    import getpass
+except ImportError:
+    print("problem importing getpass, portability?")
 
 from minio import Minio # type: ignore
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
@@ -28,22 +35,54 @@ from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
 def cli():
     pass
 
-def get_minio_secret():
+def get_minio_url():
     failures = {}
     for n, m in {
-                "environ": lambda :os.environ['MINIO_KEY'].strip(),
-                "homefile": lambda :open(os.environ.get('HOME')+"/.minio").read().strip(),
+                "environment variable (MINIO_URL)": lambda :os.environ['MINIO_URL'].strip(),
+                "default": lambda :"minio3.internal.odahub.io",
                 }.items():
         try:
-            return m()
+            r=m()
+            print("discovered minio URL with", n, ":", r)
+            return r
         except Exception as e:
             failures[n] = e
 
-    raise RuntimeError("unable to discover MINIO: "+repr(failures))
+    raise RuntimeError("unable to discover MINIO url "+repr(failures))
+
+def get_minio_user():
+    failures = {}
+    for n, m in {
+                "environment variable (MINIO_USER)": lambda :os.environ['MINIO_USER'].strip(),
+                "current-user": lambda :getpass.getuser(),
+                }.items():
+        try:
+            r=m()
+            print("discovered minio user with", n, ":", r)
+            return r
+        except Exception as e:
+            failures[n] = e
+
+    raise RuntimeError("unable to discover MINIO user "+repr(failures))
+
+def get_minio_secret():
+    failures = {}
+    for n, m in {
+                "environment variable (MINIO_KEY)": lambda :os.environ['MINIO_KEY'].strip(),
+                "dot file in home: ~/.minio-key": lambda :open(os.environ.get('HOME')+"/.minio-key").read().strip(),
+                }.items():
+        try:
+            r=m()
+            print("discovered minio access key with", n)
+            return r
+        except Exception as e:
+            failures[n] = e
+
+    raise RuntimeError("unable to discover MINIO secret key: "+repr(failures))
 
 def get_minio():
-    return Minio('minio-internal.odahub.io',
-              access_key='minio',
+    return Minio(get_minio_url(),
+              access_key=get_minio_user(),
               secret_key=get_minio_secret(),
               secure=False)
 
