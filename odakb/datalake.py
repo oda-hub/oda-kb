@@ -27,8 +27,14 @@ except ImportError:
     print("problem importing getpass, portability?")
 
 from minio import Minio # type: ignore
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
-             BucketAlreadyExists, NoSuchBucket)
+
+try:
+    from minio.error import (InvalidResponseError, BucketAlreadyOwnedByYou, # type: ignore
+                 BucketAlreadyExists, NoSuchBucket)
+except:
+    from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
+                 BucketAlreadyExists, NoSuchBucket)
+
 
 
 @click.group()
@@ -115,7 +121,8 @@ def restore(bucket, return_metadata = False, write_files=False):
 @cli.command("get")
 @click.argument("bucket")
 @click.option("-o","--output", default=None)
-def _restore(bucket, output=None):
+@click.option("-m","--metadata", default=None)
+def _restore(bucket, output=None, metadata=None):
     m, d = restore(bucket, return_metadata=True)
 
     click.echo(pprint.pformat(m))
@@ -127,6 +134,10 @@ def _restore(bucket, output=None):
     if output is not None:
         json.dump(d, open(output,"w"))
         click.echo("storing output to {}".format(output))
+    
+    if metadata is not None:
+        json.dump(m, open(metadata,"w"))
+        click.echo(f"storing metadata to {metadata}")
 
 @cli.command("rm")
 @click.argument("bucket")

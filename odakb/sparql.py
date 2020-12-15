@@ -26,6 +26,8 @@ from os import getenv
 #keyring.set_keyring(kr)
 #keyring.keyring_key = getenv("KEYRING_CRYPTFILE_PASSWORD", None) 
 
+default_oda_sparql_root = None
+
 def placeholder(*a, **aa): # else lint gets confused by our tricks
     raise Exception("not overrided")
     return a,aa
@@ -285,13 +287,16 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     t0=time.time()
 
     if service is None:
-        oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", )
-        if oda_sparql_root:
-            logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
+        if default_oda_sparql_root is not None:
+            oda_sparql_root = default_oda_sparql_root
+            logger.info("using default sparql endpoint from \033[32mdefault_oda_sparql_root\033[0m module variable")
         else:
-            oda_sparql_root = "https://sparql.odahub.io/dataanalysis"
-            logger.info("using default sparql endpoint")
-
+            oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", )
+            if oda_sparql_root:
+                logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
+            else:
+                oda_sparql_root = "https://sparql.odahub.io/dataanalysis"
+                logger.info("using default sparql endpoint")
     else:
         oda_sparql_root = service
 
