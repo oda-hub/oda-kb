@@ -47,6 +47,10 @@ Following a [proposal](https://zenodo.org/record/3559528), the KB organizes cros
 
 Quick look analysis for INTEGRAL first-level sciencific elaboration uses scientific context from ODA kb (in part, derived from the real-time literature).
 
+### How do I set the endpoint?
+
+export ODA_SPARQL_ROOT=http://fuseki.internal.odahub.io/dataanalysis
+
 # *[prototype]*
 
 ## example discovery and execution of a workflow
