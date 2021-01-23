@@ -406,7 +406,7 @@ def tuple_list_to_turtle(tl):
 @click.option("-r", "--rdf", "tordf", is_flag=True)
 @click.option("-n", "--limit", "limit")
 @unclick
-def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False, limit=100, only="*"):
+def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdict=False, limit=1000, only="*"):
     init()
 
     if form is None:
