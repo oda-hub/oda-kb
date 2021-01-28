@@ -1,5 +1,7 @@
 import pytest
 import os
+import logging
+
 
 @pytest.mark.skipif(os.environ.get('JENA_PASSWORD') is None, reason="no writable jena")
 def test_put():
@@ -53,6 +55,9 @@ def test_put_file():
     import odakb.datalake
     import odakb.sparql
     import time
+
+    logging.basicConfig(level=logging.DEBUG)
+
     odakb.sparql.init()
 
     fn = "file-" + time.strftime("%s") + "-"

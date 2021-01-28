@@ -49,7 +49,7 @@ def get_minio_url():
                 }.items():
         try:
             r=m()
-            print("discovered minio URL with", n, ":", r)
+            logger.info("\033[32mdiscovered minio\033[0m URL with %s:%s", n, r)
             return r
         except Exception as e:
             failures[n] = e
@@ -64,7 +64,7 @@ def get_minio_user():
                 }.items():
         try:
             r=m()
-            print("discovered minio user with", n, ":", r)
+            logger.info("\033[32mdiscovered minio user\033[0m with %s:%s", n, r)
             return r
         except Exception as e:
             failures[n] = e
@@ -79,7 +79,7 @@ def get_minio_secret():
                 }.items():
         try:
             r=m()
-            print("discovered minio access key with", n)
+            logger.info("\033[32mdiscovered minio access key\033[0m with %s", n)
             return r
         except Exception as e:
             failures[n] = e
