@@ -1,0 +1,15 @@
+.eggs
+.mypy_cache
+__pycache__
+test*output*
+test_*json
+*egg-info
+*swp
+code
+dist
+data
+cwl.output.json
+build
+knowledge.n3
+EGG-INFO
+context.yaml
