@@ -13,3 +13,4 @@ build
 knowledge.n3
 EGG-INFO
 context.yaml
+file-*
