@@ -375,6 +375,12 @@ def evaluate_local(query, *args, **kwargs):
     write_files = kwargs.pop('_write_files', False)
     return_metadata = kwargs.pop('_return_metadata', False)
 
+    if query.endswith(".ipynb"):
+        query, nb = query.rsplit("/", 1)
+        kwargs['nbname'] = nb.replace(".ipynb", "")
+        logger.info("detected notebook in query: putting it in kwargs, remaining %s and %s", query, nb)
+
+
     callable_kind, origins, canonical_query = resolve_callable(query)       
 
     logger.info("\033[32mresolved callable:\033[0m \033[36m\n -- kind: %s\n -- origins: %s\n -- canonical_query: %s\033[0m", 

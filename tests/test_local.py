@@ -12,6 +12,19 @@ def test_directory_local():
     print(d.keys())
     assert d
 
+def test_directory_local_file():
+    from odakb import evaluate
+
+    d = evaluate("http://odahub.io/test/testw")
+
+    print(d.keys())
+    assert d
+    
+    evaluate("./code/odahub_io_test_testw/test.ipynb")
+    
+    print(d.keys())
+    assert d
+
 
 def test_local():
     from odakb import evaluate
