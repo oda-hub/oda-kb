@@ -246,7 +246,7 @@ def resolve_callable(query):
         oda_yaml_fn = os.path.join(query, "oda.yaml")
         try:
             oda_yaml = yaml.load(open(oda_yaml_fn), Loader=yaml.SafeLoader)
-        except IOError:
+        except IOError as e:
             logger.error("unable to read oda.yaml from callable directory %s, %s", oda_yaml_fn, e)
             raise
 
