@@ -99,34 +99,34 @@ def load_defaults(default_prefixes, default_graphs):
                 os.path.join(getenv("HOME"), ".odakb", "defaults.yaml"),
             ]:
         try:
-            logger.info("oda defaults from %s", odakb_defaults)
+            logger.debug("oda defaults from %s", odakb_defaults)
 
             for p in yaml.safe_load(open(odakb_defaults))['prefixes']:
                 if p not in default_prefixes:
-                    logger.info("appending new prefix: %s", p)
+                    logger.debug("appending new prefix: %s", p)
                     default_prefixes.append(p)
         except Exception as e:
-            logger.info("unable to load default prefixes from %s: %s", odakb_defaults, repr(e))
+            logger.debug("unable to load default prefixes from %s: %s", odakb_defaults, repr(e))
     
     try:
         odakb_defaults_http = "http://ontology.odahub.io/defaults/defaults.yaml"
-        logger.info("oda defaults from %s", odakb_defaults_http)
+        logger.debug("oda defaults from %s", odakb_defaults_http)
 
         for p in yaml.safe_load(io.StringIO(requests.get(odakb_defaults_http).text))['prefixes']:
             if p not in default_prefixes:
-                logger.info("appending new prefix: %s", p)
+                logger.debug("appending new prefix: %s", p)
                 default_prefixes.append(p)
     except Exception as e:
-        logger.info("unable to load default prefixes: %s", repr(e))
+        logger.debug("unable to load default prefixes: %s", repr(e))
         raise
 
     try:
         odakb_graphs = glob.glob(os.path.join(getenv("HOME"), ".odakb", "graphs.d","*"))
-        logger.info("default graphs from: %s", odakb_graphs)
+        logger.debug("default graphs from: %s", odakb_graphs)
         for oda_graph_fn in odakb_graphs:
             default_graphs.append(open(oda_graph_fn).read())
     except Exception as e:
-        logger.info("unable to load default graphs: %s", e)
+        logger.debug("unable to load default graphs: %s", e)
 
 
 def process_graph_loaders(G):
@@ -144,7 +144,7 @@ def process_graph_loaders(G):
     r = query(q)
         
     for loader, rm, loc in G.query(q):
-        logger.info(loader, rm, loc)
+        logger.debug("loader: %s, rm: %s, loc: %s", loader, rm, loc)
         if str(rm) == "http://odahub.io/ontology#pythonModule":
             logger.info("will load python module %s", loc)
             mn, fn = loc.split(".")
@@ -203,7 +203,10 @@ def note_stats(**kwargs):
         query_stats.append(kwargs)
 
 def report_stats():
-    logger.info(query_stats)
+    if query_stats is not None:
+        logger.info("query stats: %s", query_stats)
+    else:
+        logger.debug("query stats are not set")
 
     if query_stats is not None:
         summary=dict(
@@ -242,7 +245,6 @@ def compose_sparql(body, prefixes=None):
 
     return "\n".join(_prefixes)+"\n\n"+body
 
-# curl http://fuseki.internal.odahub.io/dataanalysis --data query='PREFIX oda: <http://odahub.io/ontology#>  CONSTRUCT WHERE {?w a oda:test; ?b ?c  . ?x ?y ?w} ' | python -c 'import sys, rdflib; print(rdflib.Graph().parse(data=sys.stdin.read(), format="turtle").serialize(format="json-ld", indent=4, sort_keys=True).decode())' | jq '.[]'
 
 @cli.command("construct")
 @click.argument("data")
@@ -251,9 +253,9 @@ def _construct(data, jsonld):
     r = construct(data, jsonld)
 
     if jsonld:
-        print(json.dumps(r, indent=2, sort_keys=True))
+        logger.debug(json.dumps(r, indent=2, sort_keys=True))
     else:
-        print(r)
+        logger.debug(r)
 
 
 def construct(data, jsonld):
@@ -329,7 +331,7 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     
     if invalid_raise:
         if r.status_code in [200, 201, 204]:
-            logger.info("ODA KB responds %s", r.status_code)
+            logger.info("\033[32mODA KB responds %s\033[0m", r.status_code)
         else:
             logger.error("SPARQL failed code %s", r.status_code)
             logger.debug("requested: %s", data)
@@ -414,7 +416,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
 
     data = compose_sparql(f"SELECT DISTINCT {only} WHERE {{ {query} }}" + (f" LIMIT {limit}" if limit is not None else ""))
 
-    print("data:", data)
+    logger.debug("data: %s", data)
 
     r = execute_sparql(data, 'query', invalid_raise=True)
 
@@ -427,7 +429,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         rdf = tuple_list_to_turtle([render_rdf(form, e) for e in entries])
 
     if tordf:
-        print(rdf)
+        logger.debug(rdf)
         return rdf
 
     if tojson or tojdict:
@@ -435,7 +437,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True).decode()
 
     if tojson:
-        print(jsonld)
+        logger.debug(jsonld)
         return jsonld
     
     if tojdict:
@@ -465,7 +467,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
 
         jdict = jsonld2dict(json.loads(jsonld))
         
-        print(json.dumps(jdict, sort_keys=True, indent=4))
+        logger.debug(json.dumps(jdict, sort_keys=True, indent=4))
 
         return jdict
 
@@ -565,7 +567,7 @@ def _delete(query=None, fact=None, todict=True, all_entries=False, n=10):
 
         rdf_es = []
         for entry in entries:
-            logger.info(entry)
+            logger.info("entry to delete: %s", entry)
 
             rdf = render_rdf(fact, entry)
             logger.info("rdf %s", rdf)

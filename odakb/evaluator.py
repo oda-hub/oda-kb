@@ -4,10 +4,11 @@ import sys
 import io
 import glob
 import copy
-import click
 import yaml
 import pprint
 import hashlib
+import logging
+import argparse
 import traceback
 import importlib
 import subprocess
@@ -17,10 +18,12 @@ import odakb.datalake as dl
 
 import numpy as np # type: ignore
 
+logger = logging.getLogger(__name__)
+
 try:
     import nb2workflow.nbadapter as nba # type: ignore
 except Exception as e:
-    print("unable to import evaluator for nba!", e)
+    logger.debug("unable to import evaluator for nba!", e)
 
 
 # evaluation is reification
@@ -55,7 +58,9 @@ def add_numpy_representers():
 
 
 def to_bucket_name(n):
-    bn = re.sub(r'-+', "-", re.sub(r'\W', "-", n))
+    bn = re.sub(r'[\W_]', "-", n)
+    bn = re.sub(r'-+', "-", bn)
+    bn = re.sub(r'^[^a-z]', "b", bn)
 
     if len(bn)>63:
         bn = bn.replace('gitlab.astro.unige.ch', 'gitlab')
@@ -76,16 +81,24 @@ def git_get_url(d):
 def build_local_context(query, origins, callable_kind):
     context = {}
 
+    logger.debug("local context will discover code locally, possibly already fetched and ready for execution")
+
     # also deduce from gitlhub reference
     for oda_yaml in ["oda.yaml"] + glob.glob("code/*/oda.yaml"):
-        if not os.path.exists(oda_yaml): continue
+
+        oda_yaml = os.path.realpath(oda_yaml)
+
+        if not os.path.exists(oda_yaml):
+            continue
+        
+        logger.info("found oda.yaml: %s", oda_yaml)
 
         try:
             y = yaml.safe_load(open(oda_yaml))
         except:
             y = yaml.load(open(oda_yaml))
 
-        print("context: loading oda yaml", oda_yaml, y)
+        logger.debug("context: loading oda yaml", oda_yaml, y)
         context[y['uri_base']] = dict()
 
         if oda_yaml == "oda.yaml":
@@ -96,8 +109,14 @@ def build_local_context(query, origins, callable_kind):
         context[y['uri_base']]['version']=subprocess.check_output(["git", "describe", "--always", "--tags", "--dirty"], cwd=context[y['uri_base']]['path']).decode().strip()
         context[y['uri_base']]['origin'] = git_get_url(context[y['uri_base']]['path'])
         context[y['uri_base']]['callable_kind'] = callable_kind
+        
+        context[y['uri_base']]['oda'] = y
 
         context[context[y['uri_base']]['origin']] = context[y['uri_base']]
+
+       # for origin in origins:
+        #    context[origin] = context[y['uri_base']]
+
 
     if callable_kind == "http://odahub.io/ontology#pypi-function":
 
@@ -107,7 +126,7 @@ def build_local_context(query, origins, callable_kind):
         origin = origins[0]
 
         package_name, package_callable = origin.split(".", 1)
-        print("found pypi-based function", package_name, package_callable)
+        logger.debug("found pypi-based function", package_name, package_callable)
 
 
         context[query] = dict()
@@ -122,23 +141,27 @@ def build_local_context(query, origins, callable_kind):
     return context
 
 def unique_name(query, args, kwargs, context):
-    print("unique name for", query, kwargs, context)
+    logger.debug("unique name for", query, kwargs, context)
 
     s=io.StringIO()
     yaml.safe_dump(args, s)
     yaml.safe_dump(kwargs, s)
     qc = hashlib.sha256(s.getvalue().encode()).hexdigest()[:8]
     
-    query_alias = query.replace("http://","").replace("/",".") 
+    query_alias = query.replace("http://","").replace("/","_") 
 
     r="{}-{}-{}-{}".format(query_alias, kwargs.get('nbname', 'default'), context[query]['version'], qc)
-    print("unique name is", r, "for", query,kwargs,context)
+    logger.debug("unique name is", r, "for", query,kwargs,context)
     return r
     
 
 def execute_local(query, args, kwargs, context):
-    print("will evaluate with local context", context[query])
-    print("full query:", query, "kwargs", kwargs)
+    logger.info("\033[31mwill execute\033[0m (evaluate with local context)")
+
+    for k,v in context[query].items():
+        logger.info("\033[34m%20s: %s\033[0m", k, v)
+
+    logger.debug("full query:", query, "kwargs", kwargs)
     
     fn = "data/{}.yaml".format(unique_name(query, args, kwargs, context))
 
@@ -166,24 +189,33 @@ def execute_local(query, args, kwargs, context):
 
             nbnames = [n for n in glob.glob(nbdir+"/*ipynb") if not n.endswith("_output.ipynb")]
 
-            print("nbnames:", nbnames)
+            logger.debug("nbnames:", nbnames)
             
             if nbname_key == "default":
-                if len(nbnames) == 1:
-                    nbname = nbnames[0]
+                if context[query]['oda'].get("root_notebook", None) is not None:
+                    nbname = os.path.join(
+                                context[query]['path'],
+                                context[query]['oda']['root_notebook']
+                             )
+                    logger.info("using default nbname %s", nbname)
                 else:
-                    raise Exception("one and only one nb possible with default key, found {}".format(nbnames))
+                    logger.debug("no default nbname")
+                    if len(nbnames) == 1:
+                        nbname = nbnames[0]
+                        logger.debug("using only available nbname %s", nbname)
+                    else:
+                        raise Exception("one and only one nb possible with default key, found {}".format(nbnames))
             else:
                 nbname = nbdir + "/" + nbname_key + ".ipynb"
         
-            print("nbrun with",nbname, kwargs)
+            logger.debug("nbrun with", nbname, kwargs)
             d = nba.nbrun(nbname, kwargs)
 
-            print("nbrun returns:")
+            logger.debug("nbrun returns:")
 
             for k, v in d.items():
                 if not k.endswith("_content"):
-                    print(k, pprint.pformat(v))
+                    logger.debug(k, pprint.pformat(v))
         
                 try:
                     d[k] = yaml.safe_load(v)
@@ -200,13 +232,32 @@ def execute_local(query, args, kwargs, context):
     return d
 
 def resolve_callable(query):
+    logger.info("\033[33mrequested to resolve callable %s\033[0m", query)
+
     if query.startswith("https://gitlab") or query.startswith("git@gitlab"):
-        print("direct query to gitlab")
-        return "http://odahub.io/callable/notebook", [query]
+        logger.info("\033[32mdirect query to gitlab\033[0m")
+        return "http://odahub.io/callable/notebook", [query], query
+    
+    if not query.startswith("http://") and not query.startswith("https://") \
+       and os.path.isdir(query):
+        logger.info("\033[35massuming directory is prioritized and considered notebook!\033[0m")
+        query = os.path.realpath(query)
+
+        oda_yaml_fn = os.path.join(query, "oda.yaml")
+        try:
+            oda_yaml = yaml.load(open(oda_yaml_fn), Loader=yaml.SafeLoader)
+        except IOError:
+            logger.error("unable to read oda.yaml from callable directory %s, %s", oda_yaml_fn, e)
+            raise
+
+        canonical_query = oda_yaml['uri_base']
+
+        logger.info("\033[32massuming %s directory is our callable\033[0m", query)
+        return "http://odahub.io/callable/notebook", [query], canonical_query
 
     try:
         r = sp.select("<%s> oda:callableKind ?kind ."%query)
-        print(r)
+        logger.debug(r)
     except:
         r = []
     
@@ -222,11 +273,23 @@ def resolve_callable(query):
     except:
         r=[]
     
-    print(r)
+    logger.debug(r)
 
     locations = r
+
+    canonical_queries = [ L['location'] for L  in locations if L['location'].startswith("http://odahub.io") ]
     
-    return callable_kind, [l['location'] for l in locations]
+    if len(canonical_queries) == 1:
+        canonical_query = canonical_queries[0]
+    elif len(canonical_queries) > 1:
+        canonical_query = canonical_queries[0]
+        logger.warning("\033[31msuspiciously many canonical query names! %s; will use first one\033[0m", canonical_queries)
+
+    else:
+        canonical_query =  query
+        logger.warning("\033[31mno actual canonical query will default %s\033[0m", canonical_query)
+    
+    return callable_kind, [l['location'] for l in locations], canonical_query
 
 def git4ci(origin):
     if origin.startswith("git@"):
@@ -243,7 +306,7 @@ def fetch_origins(origins, callable_kind, query):
     except:
         base_dir_origin  = None
 
-    print("fetch origins", origins, "query:", query, "base dir query:", base_dir_origin)
+    logger.info("fetch_origins '%s' for query '%s' base dir query '%s'", origins, query, base_dir_origin)
 
     for origin in origins:
 
@@ -252,66 +315,58 @@ def fetch_origins(origins, callable_kind, query):
             return origin, [query, origin]
         else:
             local_copy = os.path.join("code",
-                                          re.sub("[:/]", ".", 
-                                          re.sub("^https?://", "", query))
-                                        )
+                                      re.sub("[:/\.]", "_", 
+                                             re.sub("^https?://", "", query),
+                                            )
+                                     )
+
+            logger.info("local copy: %s", os.path.realpath(local_copy))
 
             try:
-                print("trying to clone", origin)
+                logger.debug("trying to clone", origin)
                 subprocess.check_call(["git", "clone", origin, local_copy])
-                print("clonned succesfully!")
+                logger.debug("clonned succesfully!")
                 return origin, [query, origin]
             except: pass
 
             try:
-                print("trying to clone alternative", git4ci(origin))
+                logger.debug("trying to clone alternative", git4ci(origin))
                 subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
-                print("clonned succesfully!")
+                logger.debug("clonned succesfully!")
                 return git4ci(origin), [query, origin, git4ci(origin)]
             except: pass
 
             try:
-                print("trying to pull")
+                logger.debug("trying to pull")
                 subprocess.check_call(["git", "pull"],cwd=local_copy)
-                print("managed to  pull")
+                logger.info("managed to pull")
                 return origin, [query, origin]
             except Exception as e: 
-                print("git pull failed in",local_copy,"exception:", e)
+                logger.debug("git pull failed in",local_copy,"exception:", e)
                 continue
 
     return None, []
 
 
-#def query_args_kwargs2rdf(query, *args, **kwargs):
-#    return
-
-
-evaluate = placeholder
-
-@click.command()
-@click.argument("query")
-@click.option("-r","--restrict")
-@sp.unclick
-def _evaluate(query=None, *args, **kwargs):
+def evaluate(query=None, *args, **kwargs):
     restrict_execution_modes = kwargs.pop('restrict', "local,baobab") # None means all
-
-    #Q = query_args_kwargs2rdf(query, *args, **kwargs)
 
     restrict_execution_modes = restrict_execution_modes.split(",")
 
     for execution_mode in restrict_execution_modes:
         try:
-            print("trying execution mode", execution_mode)
+            logger.debug("trying execution mode", execution_mode)
 
             r_func=globals()['evaluate_'+execution_mode]
 
-            print("execution mode will proceed", execution_mode, "with", r_func)
+            logger.debug("execution mode will proceed", execution_mode, "with", r_func)
 
-            print("towards evaluation")
+            logger.debug("towards evaluation")
             return r_func(query, *args, **kwargs)
         except Exception as e:
-            print("failed mode", execution_mode, e)
+            logger.debug("failed mode", execution_mode, e)
             raise 
+
 
 
 
@@ -320,57 +375,67 @@ def evaluate_local(query, *args, **kwargs):
     write_files = kwargs.pop('_write_files', False)
     return_metadata = kwargs.pop('_return_metadata', False)
 
-    callable_kind, origins = resolve_callable(query)       
+    callable_kind, origins, canonical_query = resolve_callable(query)       
+
+    logger.info("\033[32mresolved callable:\033[0m \033[36m\n -- kind: %s\n -- origins: %s\n -- canonical_query: %s\033[0m", 
+                    callable_kind, origins, canonical_query)
 
     # may also call CWL; verify that CWL is runnable in this container
 
-    print("assuming this container is compliant with", query)
+    logger.warning("assuming this environment is compliant with %s", query)
     
     query_fetched_origin, query_names = fetch_origins(origins, callable_kind, query)
 
-    print("fetched origin for query", query, "is", query_fetched_origin, "all query names", query_names)
+    logger.info("\033[33mfetched origin for query %s is %s, all query names %s\033[0m", query, query_fetched_origin, query_names)
 
     context = build_local_context(query, origins, callable_kind)
 
-    print("got context for", context.keys())
+    logger.info("complete local context contains:")
+
+    for k,v in context.items():
+        logger.info("\033[36m -- %50s: %s\033[0m", k, v['path'])
 
     if query_fetched_origin in context:
         for query_name in query_names:
             context[query_name] = context[query_fetched_origin]
     
-    print("after aliasing got context for", context.keys())
+    logger.debug("after aliasing got context for", context.keys())
 
     metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
     uname = to_bucket_name(unique_name(query, args, kwargs, context)) # unique-name contains version
-
     
+    logger.info("\033[31mbucket name %s\033[0m", uname)
     
     if cached:
         try:
             d = dl.restore(uname, write_files=write_files, return_metadata=return_metadata)
-            print("got from bucket", uname)
+            logger.info("\033[32mrestored from bucket %s\033[0m", uname)
             return d
         except Exception as e:
-            print("unable to get the bucket", uname, ":", e)
+            logger.debug("unable to get the bucket", uname, ":", e)
 
     # TODO: need construct kwargs from sub queries
 
     d = None
 
+    query = canonical_query
+
     if query.startswith("http://") or query.startswith("https://")  or query.startswith("git@"):
         if query in context:
             d = execute_local(query, args, kwargs, context)
         else:
-            raise Exception("unable to find query:",query, "have:",context.keys())
+            raise Exception(f"unable to find query: {query} have: {context.keys()}")
+    else:
+        raise Exception(f"unable to execute query {query} since it is not http")
 
     if d is None:
         raise Exception("unable to interpret query")
 
     try:
         r=dl.store(d, metadata, uname)
-        print("successfully stored to the datalake", r)
+        logger.info("\033[32msuccessfully stored to the datalake %s\033[0m", r)
     except Exception as e:
-        print("problem storing to the datalake", e)
+        logger.error("\033[31mproblem storing to the datalake: %s\033[0m", e)
 
     if return_metadata:
         return metadata, d
@@ -378,9 +443,25 @@ def evaluate_local(query, *args, **kwargs):
         return d
 
             
+def main():
+    parser = argparse.ArgumentParser(description='Run/evaluate/call some callable/evaluatable/runnable things') # run locally, remotely, semantically
+    parser.add_argument('query', metavar='query', type=str)
+    parser.add_argument('--debug', action="store_true")
+    parser.add_argument('-r', metavar='restrict', type=str)
+    parser.add_argument('inputs', nargs=argparse.REMAINDER)
 
+    args = parser.parse_args()
 
-if __name__ == "__main__":
-    _evaluate()
+    inputs={}
+    for i in args.inputs:
+        if not i.startswith("--inp-"): continue
+        k,v = i.replace('--inp-','').split("=")
+        inputs[k] = v
+        
+    #setup_logging(args.debug)
+
+    evaluate(args.query, **inputs)
+
             
-    
+if __name__ == "__main__":
+    main()

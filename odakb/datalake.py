@@ -219,13 +219,13 @@ def store(data, meta=None, bucket_name = None):
             get_name = lambda object: object.object_name
             names = map(get_name, client.list_objects_v2(bucket_name, '', recursive=True))
             for err in client.remove_objects(bucket_name, names):
-                logger.info("Deletion Error: {}".format(err))
+                logger.debug("Deletion Error: {}".format(err))
         except ResponseError as err:
-            logger.info(err)
+            logger.debug("error removing bucket", err)
 
         client.remove_bucket(bucket_name)
     except Exception as e:
-        logger.info(e)
+         logger.debug("error removing bucket %s: %s", bucket_name, e)
 
     try:
          client.make_bucket(bucket_name, location="us-east-1")
@@ -238,11 +238,11 @@ def store(data, meta=None, bucket_name = None):
     else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
         try:
-             logger.info(client.put_object(bucket_name, 'data', io.BytesIO(data_json.encode()), len(data_json)))
-             logger.info(client.put_object(bucket_name, 'meta', io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
-             logger.info("stored")
+             logger.debug("storing data to bucket returns %s", client.put_object(bucket_name, 'data', io.BytesIO(data_json.encode()), len(data_json)))
+             logger.debug("storing meta-data to bucket returns %s", client.put_object(bucket_name, 'meta', io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
+             logger.debug("stored")
         except ResponseError as err:
-             logger.info(err)
+             logger.warning("error storing bucket %s: %s", bucket_name, err)
 
     return bucket_name
 

@@ -1,4 +1,18 @@
 
+def test_directory_local():
+    from odakb import evaluate
+
+    d = evaluate("http://odahub.io/test/testw")
+
+    print(d.keys())
+    assert d
+    
+    evaluate("./code/odahub_io_test_testw")
+    
+    print(d.keys())
+    assert d
+
+
 def test_local():
     from odakb import evaluate
 
@@ -24,8 +38,10 @@ def test_local_cwd():
     from odakb import evaluate
 
     from path import Path
+    
+    d = evaluate("http://odahub.io/test/testw", t0=999)
 
-    with Path("code/odahub.io.test.testw"):
+    with Path("code/odahub_io_test_testw"):
         d = evaluate("http://odahub.io/test/testw")
 
     print(d.keys())
@@ -37,7 +53,7 @@ def test_local_cwd_gitlab():
 
     from path import Path
 
-    with Path("code/odahub.io.test.testw"):
+    with Path("code/odahub_io_test_testw"):
         d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow.git")
 
     print(d.keys())
@@ -47,7 +63,6 @@ def test_local_cwd_gitlab():
 def test_local_gitlab_mulitnb():
     from odakb import evaluate
 
-    from path import Path
 
     d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow-2nb.git", nbname="test2")
 
@@ -57,7 +72,6 @@ def test_local_gitlab_mulitnb():
 
 def test_local_gitlab_mulitnb_fail():
     from odakb import evaluate
-    from path import Path
 
     try:
         d = evaluate("https://gitlab.astro.unige.ch/savchenk/oda-testworkflow-2nb.git", _cached=False)
@@ -71,7 +85,6 @@ def test_local_gitlab_mulitnb_fail():
 def test_local_gitlab_mulitnb_ssh():
     from odakb import evaluate
 
-    from path import Path
 
     d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow-2nb.git", nbname="test2", _cached=False)
 
@@ -86,7 +99,6 @@ def test_git4ci():
 def test_local_gitlab_mulitnb_ssh_fail():
     from odakb import evaluate
 
-    from path import Path
 
     try:
         d = evaluate("git@gitlab.astro.unige.ch:savchenk/oda-testworkflow.git", induce_fail=1, _cached=False)
