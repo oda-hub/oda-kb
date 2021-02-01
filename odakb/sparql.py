@@ -108,17 +108,27 @@ def load_defaults(default_prefixes, default_graphs):
         except Exception as e:
             logger.debug("unable to load default prefixes from %s: %s", odakb_defaults, repr(e))
     
-    try:
-        odakb_defaults_http = "http://ontology.odahub.io/defaults/defaults.yaml"
-        logger.debug("oda defaults from %s", odakb_defaults_http)
 
-        for p in yaml.safe_load(io.StringIO(requests.get(odakb_defaults_http).text))['prefixes']:
-            if p not in default_prefixes:
-                logger.debug("appending new prefix: %s", p)
-                default_prefixes.append(p)
-    except Exception as e:
-        logger.debug("unable to load default prefixes: %s", repr(e))
-        raise
+    for ontology_mirror in [
+                    "https://www.isdc.unige.ch/~savchenk/volodymyrss.github.io/",
+                    "http://ontology.odahub.io/",
+                ]:
+        try:
+            logger.debug("oda defaults from mirror %s", ontology_mirror)
+            odakb_defaults_http = ontology_mirror+"defaults/defaults.yaml"
+            logger.debug("oda defaults from %s", odakb_defaults_http)
+
+            for p in yaml.safe_load(io.StringIO(requests.get(odakb_defaults_http).text))['prefixes']:
+                if p not in default_prefixes:
+                    logger.debug("appending new prefix: %s", p)
+                    default_prefixes.append(p)
+
+            logger.info("\033[33mloaded prefixes from: %s\033[0m", odakb_defaults_http)
+
+            break
+        except Exception as e:
+            logger.error("\033[31munable to load default prefixes: %s\033[0m", repr(e))
+            raise
 
     try:
         odakb_graphs = glob.glob(os.path.join(getenv("HOME"), ".odakb", "graphs.d","*"))
