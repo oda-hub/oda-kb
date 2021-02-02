@@ -459,10 +459,19 @@ def main():
     args = parser.parse_args()
 
     inputs={}
+    k = None
     for i in args.inputs:
-        if not i.startswith("--inp-"): continue
-        k,v = i.replace('--inp-','').split("=")
-        inputs[k] = v
+        if k is not None:
+            v = i
+            inputs[k] = v
+            logger.info("found value for key: %s: %s", k, v)
+            k = None
+        else:
+            if i.startswith("--inp-"):
+                k = i.replace('--inp-','')
+                logger.info("found key: %s", k)
+            else:
+                logger.warning("parameter cound not be interpretted %s", i)
         
     #setup_logging(args.debug)
 
