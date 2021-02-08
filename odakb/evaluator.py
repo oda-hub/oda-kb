@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 try:
     import nb2workflow.nbadapter as nba # type: ignore
 except Exception as e:
-    logger.debug("unable to import evaluator for nba!", e)
+    logger.debug("unable to import evaluator for nba! %s", e)
 
 
 # evaluation is reification
@@ -322,19 +322,21 @@ def fetch_origins(origins, callable_kind, query):
 
             logger.info("local copy: %s", os.path.realpath(local_copy))
 
-            try:
-                logger.debug("trying to clone", origin)
-                subprocess.check_call(["git", "clone", origin, local_copy])
-                logger.debug("clonned succesfully!")
-                return origin, [query, origin]
-            except: pass
+            for _origin in origin, git4ci(origin):
+                re_origin = os.environ.get('ODAKB_ALLOWED_ORIGINS', '.*')
+                if re.match(re_origin, _origin):
+                    logger.info("origin %s allowed by %s", _origin, re_origin)
+                else:
+                    logger.info("\033[31morigin %s FORBIDDEN by %s\033[0m", _origin, re_origin)
+                    continue
 
-            try:
-                logger.debug("trying to clone alternative", git4ci(origin))
-                subprocess.check_call(["git", "clone", git4ci(origin), local_copy])
-                logger.debug("clonned succesfully!")
-                return git4ci(origin), [query, origin, git4ci(origin)]
-            except: pass
+                logger.info("trying to clone %s as %s", origin, _origin)
+                try:
+                    subprocess.check_call(["git", "clone", _origin, local_copy])
+                    logger.info("\033[32mclonned succesfully!\033[0m")
+                    return _origin, [query, origin, _origin]
+                except Exception as e:
+                    logger.info("\033[31mfailed to clone: %s!\033[0m", e)
 
             try:
                 logger.debug("trying to pull")
