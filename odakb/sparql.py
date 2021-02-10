@@ -307,7 +307,7 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
             if oda_sparql_root:
                 logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
             else:
-                oda_sparql_root = "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb/query/dataanalysis"
+                oda_sparql_root = "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb"
                 logger.info("using default sparql endpoint")
     else:
         oda_sparql_root = service
