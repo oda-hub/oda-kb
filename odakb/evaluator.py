@@ -270,10 +270,11 @@ def resolve_callable(query):
 
     try:
         r=sp.select("<%s> oda:location ?location ."%query)
-    except:
+    except Exception as e:
+        logger.exception("\033[31mproblem finding locations: %s\033[0", e)
         r=[]
     
-    logger.debug(r)
+    logger.info("found locations: %s", r)
 
     locations = r
 
@@ -286,7 +287,7 @@ def resolve_callable(query):
         logger.warning("\033[31msuspiciously many canonical query names! %s; will use first one\033[0m", canonical_queries)
 
     else:
-        canonical_query =  query
+        canonical_query = query
         logger.warning("\033[31mno actual canonical query will default %s\033[0m", canonical_query)
     
     return callable_kind, [l['location'] for l in locations], canonical_query
