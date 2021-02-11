@@ -410,7 +410,13 @@ def evaluate_local(query, *args, **kwargs):
     
     logger.debug("after aliasing got context for", context.keys())
 
-    metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
+    if query in context:
+        metadata = dict(query=query, kwargs=kwargs, version=context[query]['version'])
+    elif canonical_query in context:
+        metadata = dict(query=query, kwargs=kwargs, version=context[canonical_query]['version'])
+    else:
+        raise Exception(f" requested query '{query}' or '{canonical_query}' not found in context, have {'; '.join(list(context.keys()))}")
+
     uname = to_bucket_name(unique_name(query, args, kwargs, context)) # unique-name contains version
     
     logger.info("\033[31mbucket name %s\033[0m", uname)
