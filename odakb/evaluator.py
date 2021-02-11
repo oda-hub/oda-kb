@@ -18,7 +18,23 @@ import odakb.datalake as dl
 
 import numpy as np # type: ignore
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("odakb.sparql")
+
+
+def setup_logging(level=logging.INFO):
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    
+    logger.setLevel(level)
+
+def set_silent():
+    setup_logging(logging.ERROR)
+
+def set_debug():
+    setup_logging(logging.DEBUG)
 
 try:
     import nb2workflow.nbadapter as nba # type: ignore
@@ -98,7 +114,7 @@ def build_local_context(query, origins, callable_kind):
         except:
             y = yaml.load(open(oda_yaml))
 
-        logger.debug("context: loading oda yaml", oda_yaml, y)
+        logger.debug("context: loading oda yaml %s %s", oda_yaml, y)
         context[y['uri_base']] = dict()
 
         if oda_yaml == "oda.yaml":
@@ -126,7 +142,7 @@ def build_local_context(query, origins, callable_kind):
         origin = origins[0]
 
         package_name, package_callable = origin.split(".", 1)
-        logger.debug("found pypi-based function", package_name, package_callable)
+        logger.debug("found pypi-based function %s %s", package_name, package_callable)
 
 
         context[query] = dict()
@@ -141,7 +157,7 @@ def build_local_context(query, origins, callable_kind):
     return context
 
 def unique_name(query, args, kwargs, context):
-    logger.debug("unique name for", query, kwargs, context)
+    logger.debug("unique name for %s %s context: %s", query, kwargs, context)
 
     s=io.StringIO()
     yaml.safe_dump(args, s)
@@ -151,7 +167,7 @@ def unique_name(query, args, kwargs, context):
     query_alias = query.replace("http://","").replace("/","_") 
 
     r="{}-{}-{}-{}".format(query_alias, kwargs.get('nbname', 'default'), context[query]['version'], qc)
-    logger.debug("unique name is", r, "for", query,kwargs,context)
+    logger.debug("unique name is %s for %s, %s, context %s", r, query,kwargs,context)
     return r
     
 
@@ -161,7 +177,7 @@ def execute_local(query, args, kwargs, context):
     for k,v in context[query].items():
         logger.info("\033[34m%20s: %s\033[0m", k, v)
 
-    logger.debug("full query:", query, "kwargs", kwargs)
+    logger.debug("full query: %s kwargs %s", query, kwargs)
     
     fn = "data/{}.yaml".format(unique_name(query, args, kwargs, context))
 
@@ -189,7 +205,7 @@ def execute_local(query, args, kwargs, context):
 
             nbnames = [n for n in glob.glob(nbdir+"/*ipynb") if not n.endswith("_output.ipynb")]
 
-            logger.debug("nbnames:", nbnames)
+            logger.debug("nbnames: %s", nbnames)
             
             if nbname_key == "default":
                 if context[query]['oda'].get("root_notebook", None) is not None:
@@ -208,14 +224,14 @@ def execute_local(query, args, kwargs, context):
             else:
                 nbname = nbdir + "/" + nbname_key + ".ipynb"
         
-            logger.debug("nbrun with", nbname, kwargs)
+            logger.debug("nbrun with %s %s", nbname, kwargs)
             d = nba.nbrun(nbname, kwargs)
 
             logger.debug("nbrun returns:")
 
             for k, v in d.items():
                 if not k.endswith("_content"):
-                    logger.debug(k, pprint.pformat(v))
+                    logger.debug("%s: %s", k, pprint.pformat(v))
         
                 try:
                     d[k] = yaml.safe_load(v)
@@ -462,6 +478,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run/evaluate/call some callable/evaluatable/runnable things') # run locally, remotely, semantically
     parser.add_argument('query', metavar='query', type=str)
     parser.add_argument('--debug', action="store_true")
+    parser.add_argument('--quiet', action="store_true", default=False)
     parser.add_argument('-r', metavar='restrict', type=str)
     parser.add_argument('inputs', nargs=argparse.REMAINDER)
 
@@ -482,7 +499,15 @@ def main():
             else:
                 logger.warning("parameter cound not be interpretted %s", i)
         
-    #setup_logging(args.debug)
+    if args.debug:
+        setup_logging(logging.DEBUG)
+        logger.error('test error')
+        logger.info('test error')
+    elif args.quiet:
+        setup_logging(logging.ERROR)
+    else:
+        setup_logging()
+
 
     evaluate(args.query, **inputs)
 
