@@ -74,3 +74,68 @@ $ oda run
 ```
 
 
+h1. Knowledge Base
+
+
+h2. What is this, who needs it, another complex technology?
+
+In order to systematically share complex data in structured but flexibly manner, W3C created technology to describe relations, the RDF.
+
+Astronomers adopted it:
+
+http://ivoa.net/rdf/
+
+Various massive public data resources use it:
+
+http://dbpedia.org/page/Crab_Pulsar
+
+The world (google) is now convinced:
+
+https://schema.org/
+
+And everybody shares structured data:
+
+https://datasetsearch.research.google.com/search?query=spi-acs
+
+Function ontology allows to define entities which are commutable, given certain input parameters.
+
+http://fno.io/
+
+Think of this diverse collection of RDF vocabularies and ontologies as *language of structured knowledge in the Web*. Of pretty much any kind.
+
+
+h2. But really, why will this be useful for anyone?
+
+Semantic Web initiatives started to regularly emerge decades ago, and usually failed after some deliberation. Since google has now adopted it, it's going to win.
+
+h2. Sounds convincing! What did we already do about it?
+
+We deployed a database, and extra tooling to access it:
+
+https://sparql.odahub.io/
+
+internal-only access http://fuseki.internal.odahub.io/
+
+https://github.com/volodymyrss/oda-kb
+
+h2. How do I set the endpoint?
+
+export ODA_SPARQL_ROOT=http://fuseki.internal.odahub.io/dataanalysis
+
+h2. And real-life applications?
+
+INTEGRAL QLA uses the KB to learn and share what's interesting in the data.
+
+ODA platform integration self-testing uses KB to automatically design and execute possible tests:
+
+https://in.odahub.io/odatests/data
+
+Turns out, this testing is very similar to automatically designing and executing many "scientific" workflows:
+
+https://in.odahub.io/odatests/papers
+
+List of Relevant APIs can be also discovered.
+
+
+
+
