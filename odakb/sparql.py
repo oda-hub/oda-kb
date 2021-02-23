@@ -447,7 +447,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True).decode()
 
     if tojson:
-        logger.debug(jsonld)
+        print(jsonld) # TODO: where?
         return jsonld
     
     if tojdict:
@@ -477,7 +477,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
 
         jdict = jsonld2dict(json.loads(jsonld))
         
-        logger.debug(json.dumps(jdict, sort_keys=True, indent=4))
+        print(json.dumps(jdict, sort_keys=True, indent=4)) # TODO: where?
 
         return jdict
 
