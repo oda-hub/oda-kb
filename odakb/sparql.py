@@ -37,7 +37,7 @@ select = placeholder
 insert = placeholder
 
 
-logger = logging.getLogger("odakb.sparql")
+logger = logging.getLogger("oda.kb.sparql")
 
 def setup_logging(level=logging.INFO):
     handler = logging.StreamHandler(sys.stdout)
@@ -123,7 +123,7 @@ def load_defaults(default_prefixes, default_graphs):
                     logger.debug("appending new prefix: %s", p)
                     default_prefixes.append(p)
 
-            logger.info("\033[33mloaded prefixes from: %s\033[0m", odakb_defaults_http)
+            logger.debug("\033[33mloaded prefixes from: %s\033[0m", odakb_defaults_http)
 
             break
         except Exception as e:
@@ -141,7 +141,7 @@ def load_defaults(default_prefixes, default_graphs):
 
 def process_graph_loaders(G):
     for default_graph in LocalGraph.default_graphs:
-        logger.info("loading default graph %s", default_graph)
+        logger.debug("loading default graph %s", default_graph)
         load_graph(G, default_graph)
 
     q = """
@@ -290,7 +290,7 @@ def _execute_sparql(data, endpoint="query", service=None):
     r = execute_sparql(compose_sparql(data), endpoint, invalid_raise=True, raw=False, service=service)
 
     for e in r['results']['bindings']:
-        logger.info("entry: %s", e)
+        logger.debug("entry: %s", e)
 
 def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
@@ -482,7 +482,7 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         return jdict
 
     for e in entries:
-        logger.info("found fact: %s", e)
+        logger.debug("found fact: %s", e)
 
     if todict:
         return entries 
