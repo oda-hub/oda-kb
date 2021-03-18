@@ -2,6 +2,16 @@
 
 _browse, retrieve, compute on living collection of data, services, and codes_
 
+## Is ODA Knowledge Base a Knowledge Graph?
+
+We used **Knowledge Base** to avoid sticking to particular of representing knowledge in our project environment: we use a variety of storage spaces and databases when suitable.
+
+However, our **KB** aims to implement some universal basic principles: cross-linking between all sources, interoperabily through structured data and metadata as much as feasible. It is a way to apply [**FAIR** principles](https://www.nature.com/articles/sdata201618) to managment of documentation, project, and knowledge in general. 
+
+Turns out that a **Knowledge Graph** is a great way to implement this principles, by gluing together different technologies. Hence we use a collection of **Knowledge Graphs** as primary resource to exchange the necessary knowledge in interoperable way.
+
+This ODA KB project here is a collection of tools to access this diverse set of **Knowledge Base** resources, guided by the **Knowledge Graph**.
+
 ## What is *living* in this case?
 
 *living* means that the KB contains not only data (static and dynamic) but also references to executable workflows, on equal basis with the data. Computing of these workflows is generally used to populate the KB itself, by creaging new data or workflows.
