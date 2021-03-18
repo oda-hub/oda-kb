@@ -12,6 +12,32 @@ Turns out that a **Knowledge Graph** is a great way to implement this principles
 
 This ODA KB project here is a collection of tools to access this diverse set of **Knowledge Base** resources, guided by the **Knowledge Graph**.
 
+
+## Short introduction on Why Knowledge Gaphs
+
+Having an information system is a must for any project.  
+
+Some have redmine which is ok for issues; gitlab/hub and so for code. Various wiki's. With such a collection, people often loose track of information.
+
+Confluence/Jira or even better SOCCI is a great agglomerate for project management in the kind of needs ESA has, for example. 
+
+But we, in ODA, have not just issues and documents and some code, but also a lot of different data, codes, workflows, APIs, transient events, sources. All of those things are related and cross-dependent. 
+Discovering all that is hard, communication is hard, time is not spent optimally.
+
+Knowledge Graphs are made to handle these very heterogeneous data collections and find what's needed.
+There are no astronomy-specific solutions to this yet. Or even natural sciences ones.
+
+Computed Science academics, starting with TB Lee (creator of www, during his time in CERN) long ago.
+
+As it happens often industry re-discovered it later. Same thing happened with grid computing for LHC followed by clouds 
+Of course, google was one of the first to do so, as usual.
+(on a side note it seems that future starts in CERN in a bit of a clumsy but visionary way, followed by google, then industry, and finally the "normal" academia)
+
+Facebook made a related development.
+And now, Enterprise Knowledge Graphs are a thing.
+They also have tight links to NLP.
+
+
 ## What is *living* in this case?
 
 *living* means that the KB contains not only data (static and dynamic) but also references to executable workflows, on equal basis with the data. Computing of these workflows is generally used to populate the KB itself, by creaging new data or workflows.
