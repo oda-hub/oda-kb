@@ -259,11 +259,14 @@ def compose_sparql(body, prefixes=None):
 @cli.command("construct")
 @click.argument("data")
 @click.option("-j", "--jsonld", is_flag=True, default=False)
-def _construct(data, jsonld):
+@click.option("-o", "--output", default=None)
+def _construct(data, jsonld, output):
     r = construct(data, jsonld)
-
+            
     if jsonld:
         logger.debug(json.dumps(r, indent=2, sort_keys=True))
+        if output is not None and output.strip() == "-":
+            json.dump(r, sys.stdout, indent=2, sort_keys=True)
     else:
         logger.debug(r)
 
