@@ -1,4 +1,4 @@
-from . import sparql
+from . import sparql, board
 import click
 from click_aliases import ClickAliasedGroup
 import logging
@@ -41,6 +41,7 @@ def oda_list(aliases=[""]):
             logger.info("   %s : %s", k, v)
 
 oda.add_command(sparql.cli, 'sparql')
+oda.add_command(board.cli, 'board')
 
 if __name__ == "__main__":
     oda()

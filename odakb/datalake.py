@@ -64,7 +64,7 @@ def get_minio_user():
                 }.items():
         try:
             r=m()
-            logger.info("\033[32mdiscovered minio user\033[0m with %s:%s", n, r)
+            logger.debug("\033[32mdiscovered minio user\033[0m with %s:%s", n, r)
             return r
         except Exception as e:
             failures[n] = e
@@ -192,11 +192,14 @@ def _put(bucket, meta, data):
 @cli.command("put-image")
 @click.argument("fn")
 def _put_image(fn):
+    print(put_image(fn))
+
+def put_image(fn):
     logger.info("reading data from %s",fn)
     data=open(fn, "rb").read()
 
     b = store({'image':base64.b64encode(data).decode()})
-    print(b)
+    return b
     
 
 def store(data, meta=None, bucket_name = None):
@@ -219,13 +222,13 @@ def store(data, meta=None, bucket_name = None):
             get_name = lambda object: object.object_name
             names = map(get_name, client.list_objects_v2(bucket_name, '', recursive=True))
             for err in client.remove_objects(bucket_name, names):
-                logger.debug("Deletion Error: {}".format(err))
+                logger.error("Deletion Error: {}".format(err))
         except ResponseError as err:
             logger.debug("error removing bucket", err)
 
         client.remove_bucket(bucket_name)
     except Exception as e:
-         logger.debug("error removing bucket %s: %s", bucket_name, e)
+         logger.error("error removing bucket %s: %s", bucket_name, e)
 
     try:
          client.make_bucket(bucket_name, location="us-east-1")

@@ -156,7 +156,7 @@ def process_graph_loaders(G):
     for loader, rm, loc in G.query(q):
         logger.debug("loader: %s, rm: %s, loc: %s", loader, rm, loc)
         if str(rm) == "http://odahub.io/ontology#pythonModule":
-            logger.info("will load python module %s", loc)
+            logger.debug("will load python module %s", loc)
             mn, fn = loc.split(".")
             m = importlib.import_module(mn)
             getattr(m, fn)(G)
@@ -236,6 +236,7 @@ def get_jena_password():
 
     for n, m in {
                 'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
+                'homefile': lambda:open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip(),
                 #'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
@@ -295,6 +296,7 @@ def _execute_sparql(data, endpoint="query", service=None):
     for e in r['results']['bindings']:
         logger.debug("entry: %s", e)
 
+
 def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
         
@@ -304,36 +306,42 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     if service is None:
         if default_oda_sparql_root is not None:
             oda_sparql_root = default_oda_sparql_root
-            logger.info("using default sparql endpoint from \033[32mdefault_oda_sparql_root\033[0m module variable")
+            logger.debug("using default sparql endpoint from \033[32mdefault_oda_sparql_root\033[0m module variable")
         else:
             oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", )
             if oda_sparql_root:
-                logger.info("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
+                logger.debug("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
             else:
-                oda_sparql_root = "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb"
-                logger.info("using default sparql endpoint")
+                fn = os.path.join(getenv("HOME"), ".oda-sparql-root")
+                if os.path.exists(fn):
+                    oda_sparql_root = open(fn).read().strip()
+                else:
+                    oda_sparql_root = "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb"
+                    logger.debug("using default sparql endpoint")
     else:
         oda_sparql_root = service
 
     logger.info("ODA Knowledge Base (SPARQL) root is \033[32m%s\033[0m", oda_sparql_root)
 
+    url = oda_sparql_root + "/" + endpoint
+
     if endpoint == "update":    
         auth=requests.auth.HTTPBasicAuth("admin", 
                                          get_jena_password())
-        r=requests.post(oda_sparql_root+"/"+endpoint,
+        r=requests.post(url,
                         data=data,
                         auth=auth
                         )
     elif endpoint == "query":
         auth=None
-        r=requests.post(oda_sparql_root+"/"+endpoint,
-                       params=dict(query=data)
-                    )
+        r=requests.post(url,
+                        params=dict(query=data)
+                       )
     else:
         auth=None
         r=requests.post(oda_sparql_root,
-                       params=dict(query=data)
-                    )
+                        params=dict(query=data)
+                       )
 
     note_stats(spent_seconds=time.time()-t0, query_size=len(data))
     
@@ -351,13 +359,13 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
             logger.debug("serice returns %s", r.text)
         
             if r.status_code == 403:
-                m = f"Acceess To ODA KB denied at {oda_sparql_root}\n"
+                m = f"Access To ODA KB denied at {oda_sparql_root}\n"
                 m += f"please refer to https://github.com/volodymyrss/oda-kb.git for more info "
                 logger.error(m)
                 raise SPARQLException(m,
-                                      r.status_code, r.text)
+                                      r.status_code, r.text, url)
             else:
-                raise SPARQLException(r.status_code, r.text)
+                raise SPARQLException(r.status_code, r.text, url)
 
     if raw:
         return r.text
