@@ -90,7 +90,7 @@ def get_minio():
     return Minio(get_minio_url(),
               access_key=get_minio_user(),
               secret_key=get_minio_secret(),
-              secure=False)
+              secure=(os.environ.get("MINIO_SECURE", "no") == "yes")) #FIX!
 
 def exists(bucket):
     client = get_minio()
