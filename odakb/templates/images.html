@@ -1,0 +1,80 @@
+{% extends 'index.html' %}
+
+{% block body %}
+
+        <!-- <ol class="breadcrumb">
+          <li class="breadcrumb-item active"><a id="copy" href="?require_tags=fermilat">Fermi/LAT</a></li>
+          <li class="breadcrumb-item active"><a id="copy" href="#"></a></li>
+        </ol>  -->
+
+        <div class="row">
+
+{% for card in cards %}
+
+          <div class="col-lg-{{ card.size or 4 }}">
+            <div class="card mb-3">
+              <div class="card-header">
+                <i class="fas fa-chart-area"></i>
+                {{ card.title }} 
+
+                {% for tag in card.tags %}
+                <button type="button" class="btn btn-warning btn-sm">
+                    <!-- <i class="fas fa-sync-alt" onclick=""> -->
+                        {{ tag }}
+                </button> 
+                {% endfor %}
+
+                 <!-- <i class="fas fa-envelope"  rel="tooltip" title="{{ card.shared }}"></i> -->
+              </div>
+              <div class="card-body" id="card_body_{{ card.uid }}">
+
+                <div>
+                    <img src="{{ card.url | safe }}" width="100%"/>
+                </div>
+
+              </div> <!-- card-body -->
+
+            
+            <div class="card-footer small text-muted">Updated {{ card.updated_isot }}
+                <!-- <button type="button" class="btn btn-light btn-sm">
+                    <i class="fas fa-sync-alt" onclick="document.getElementById('img_{{ card.uid }}').src='{{ card.url|safe }}#' + new Date().getTime()"></i>
+                </button>  -->
+            </div>
+
+
+              <!-- <div class="card-footer small text-muted">
+                {% if card.api %}
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#exampleModalLong" onclick="location.href = '{{ card.api.url }}'">
+                   Explore API
+                </button>
+                {% endif %}
+                {% if card.notebook %}
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#exampleModalLong" onclick="location.href = '{{ card.notebook.url }}'">
+                   Jupyter 
+                </button>
+                {% endif %}
+                {% if card.oda %}
+                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#exampleModalLong" onclick="location.href = '{{ card.url }}'">
+                   Analyse in ODA 
+                </button>
+                {% endif %}
+                <button type="button" class="btn btn-warning btn-sm" id="share_mail_{{ card.uid }}">
+                   <i class="fas fa-envelope"></i>
+                   Share
+                </button>
+
+              </div> -->
+
+            </div> <!-- card-mb-3 -->
+           </div> <!-- card-lg-4 -->
+
+
+{% endfor %}
+
+          
+        </div> <!-- row -->
+
+        <p class="small text-center text-muted my-5">
+          <em>...</em>
+        </p>
+{% endblock %}

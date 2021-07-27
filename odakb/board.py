@@ -95,3 +95,6 @@ def render_index():
 
     with open("index.html", "w") as f:
         f.write(html)
+
+if __name__ == "__main__":
+    cli()

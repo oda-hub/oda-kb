@@ -17,6 +17,8 @@ import importlib
 import click
 import logging
 
+import odakb.config
+
 from os import getenv
 
 #import keyring
@@ -237,6 +239,7 @@ def get_jena_password():
     for n, m in {
                 'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
                 'homefile': lambda:open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip(),
+                'dynaconf': lambda:odakb.config.settings.jena_password,
                 #'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
@@ -297,29 +300,37 @@ def _execute_sparql(data, endpoint="query", service=None):
         logger.debug("entry: %s", e)
 
 
+def discover_oda_sparql_root(service):
+    oda_sparql_root = None
+    
+    for n, m, obsolete in [
+                ("service argument", lambda: service, False),
+                ("default_oda_sparql_root", lambda: default_oda_sparql_root, False),
+                ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME"), ".oda-sparql-root")).read().strip(), False),
+                ("dynaconf", lambda: odakb.config.settings.sparql_root, False),
+                ("default public endpoint", lambda: "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb", False)
+            ]:
+        try:
+            oda_sparql_root = m()
+            if oda_sparql_root is None:
+                logger.debug("\033[33mfailed to discover oda_sparql_root with %s as it returns None\033[0m", n)
+            else:
+                logger.info("\033[32mdiscovered oda_sparql_root with %s: %s\033[0m", n, oda_sparql_root)
+                if obsolete:
+                    logger.warning("using %s, this will be discarded soon", n)
+                break
+        except Exception as e:
+            logger.debug("\033[33mfailed to discover oda_sparql_root with %s due to %s\033[0m", n, e)                                
+
+    return oda_sparql_root
+
+
 def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
         
+    oda_sparql_root = discover_oda_sparql_root(service)
 
     t0=time.time()
-
-    if service is None:
-        if default_oda_sparql_root is not None:
-            oda_sparql_root = default_oda_sparql_root
-            logger.debug("using default sparql endpoint from \033[32mdefault_oda_sparql_root\033[0m module variable")
-        else:
-            oda_sparql_root = os.environ.get("ODA_SPARQL_ROOT", )
-            if oda_sparql_root:
-                logger.debug("using sparql endpoing from \033[32mODA_SPARQL_ROOT\033[0m environment variable")
-            else:
-                fn = os.path.join(getenv("HOME"), ".oda-sparql-root")
-                if os.path.exists(fn):
-                    oda_sparql_root = open(fn).read().strip()
-                else:
-                    oda_sparql_root = "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb"
-                    logger.debug("using default sparql endpoint")
-    else:
-        oda_sparql_root = service
 
     logger.info("ODA Knowledge Base (SPARQL) root is \033[32m%s\033[0m", oda_sparql_root)
 
