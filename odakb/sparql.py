@@ -238,8 +238,8 @@ def get_jena_password():
 
     for n, m in {
                 'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
-                'homefile': lambda:open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip(),
                 'dynaconf': lambda:odakb.config.settings.jena_password,
+                'homefile': lambda:open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip(),
                 #'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
@@ -247,7 +247,7 @@ def get_jena_password():
             logger.info("good JENA password from %s", n)
             return r
         except Exception as e:
-            logging.warning("failed %s %s %s", n, m, e)
+            logger.warning("failed %s %s %s", n, m, e)
             tried.append([n, m, e])
 
     raise RuntimeError("no good jena password, tried: "+repr(tried))
