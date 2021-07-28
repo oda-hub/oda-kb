@@ -69,13 +69,33 @@ def upload_image(fn, tag=None, annotate=None):
 @cli.command("list-images")
 @click.option("-t", "--tag", multiple=True)
 def _list_images(tag=None):
-    r = list_images(tag)
+    r = list_images(tags=tag)
     print(json.dumps(r, sort_keys=True, indent=4))
 
-def list_images(tag=None):
-    return sparql.select("?url a oda:image; oda:tag ?tag; ?p ?o .", "?url ?p ?o", tojdict=True)
+def list_images(tags=None):
 
-@cli.command()
+    filter_str = ""
+    if tags is not None:
+        for tag in tags:
+            filter_str += f"""
+                FILTER EXISTS {{ ?url oda:tag "{tag}" . }}
+            """
+
+    return sparql.select(f"""
+            ?url a oda:image; 
+                 oda:tag ?tag; 
+                 ?p ?o .
+
+            {filter_str}
+
+            """, 
+            "?url ?p ?o", tojdict=True)
+
+@cli.command('render_index')
+def _render_index():
+    with open("index.html", "w") as f:
+        f.write(render_index())
+
 def render_index():
     images = list_images()
 
@@ -93,8 +113,7 @@ def render_index():
                 } for k, v in images.items()
         ])
 
-    with open("index.html", "w") as f:
-        f.write(html)
+    return html
 
 if __name__ == "__main__":
     cli()
