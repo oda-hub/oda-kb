@@ -74,7 +74,8 @@ def _list_images(tag=None):
 
 def list_images(tags=None):
 
-    filter_str = ""
+    filter_str = "FILTER NOT EXISTS {{ ?url oda:status oda:expired . }}"
+
     if tags is not None:
         for tag in tags:
             filter_str += f"""
@@ -90,6 +91,16 @@ def list_images(tags=None):
 
             """, 
             "?url ?p ?o", tojdict=True)
+
+@cli.command("expire")
+@click.argument("url")
+def _expire(url):
+    print(expire(url))
+
+def expire(url):   
+    return sparql.insert(f"""
+            <{ url }> oda:status oda:expired .
+            """)
 
 @cli.command('render_index')
 def _render_index():
