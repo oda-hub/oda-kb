@@ -97,10 +97,12 @@ def exists(bucket):
     return client.bucket_exists(bucket)
 
 def restore(bucket, return_metadata = False, write_files=False):
+    bucket_name, object_data_name, object_meta_name = full_name_to_bucket_object(bucket)
+
     client = get_minio()
     try:
-        data = client.get_object(bucket, 'data')
-        meta = json.loads(client.get_object(bucket, 'meta').read())
+        data = client.get_object(bucket_name, object_data_name)
+        meta = json.loads(client.get_object(bucket_name, object_meta_name).read())
     except Exception as e:
         raise
 
@@ -198,7 +200,7 @@ def put_image(fn):
     logger.info("reading data from %s",fn)
     data=open(fn, "rb").read()
 
-    b = store({'image':base64.b64encode(data).decode()})
+    b = store_nested({'image':base64.b64encode(data).decode()}, prefix="images/oda-board")
     return b
     
 
@@ -250,12 +252,74 @@ def store(data, meta=None, bucket_name = None):
     return bucket_name
 
 
+def full_name_to_bucket_object(full_name):
+    full_name_segments = full_name.split("/")
+
+    if len(full_name_segments) > 1:
+        bucket_name = full_name_segments[0]
+        object_data_name = os.path.join(*full_name_segments[1:], 'data')     
+        object_meta_name = os.path.join(*full_name_segments[1:], 'meta')     
+    else:
+        bucket_name = full_name
+        object_data_name = "data"
+        object_meta_name = "meta"
+
+    logger.info("bucket name: %s", bucket_name)
+    logger.info("object data name: %s", object_data_name)
+    logger.info("object meta name: %s", object_meta_name)
+
+    return bucket_name, object_data_name, object_meta_name
+
+def store_nested(data, meta=None, name = None, prefix=None):
+    data_json = json.dumps(data)
+        
+
+    if name is None:
+        if meta is None:
+            name = form_data_name(data)
+        else:
+            name = form_data_name(meta)
+    
+    if meta is None:
+        meta = {}
+
+    if prefix is None:
+        full_name = name.strip("/")
+    else:
+        full_name = os.path.join(prefix, name).strip("/")
+
+    bucket_name, object_data_name, object_meta_name = full_name_to_bucket_object(full_name)
+
+    client = get_minio()
+    
+    try:
+         client.make_bucket(bucket_name, location="us-east-1")
+    except BucketAlreadyOwnedByYou as err:
+         pass
+    except BucketAlreadyExists as err:
+         pass
+    except ResponseError as err:
+         raise
+
+    try:
+            logger.debug("storing data to bucket returns %s", client.put_object(bucket_name, object_data_name, io.BytesIO(data_json.encode()), len(data_json)))
+            logger.debug("storing meta-data to bucket returns %s", client.put_object(bucket_name, object_meta_name, io.BytesIO(json.dumps(meta).encode()), len(json.dumps(meta))))
+            logger.debug("stored")
+    except ResponseError as err:
+            logger.warning("error storing bucket %s: %s", bucket_name, err)
+
+    return full_name
+
+
 def form_bucket_name(data):
     hashdigest = hashlib.md5(json.dumps(data).encode()).hexdigest()
-    bucket_name = "b-"+hashdigest
+    bucket_name = "b-" + hashdigest
 
     return bucket_name
 
+def form_data_name(data):
+    hashdigest = hashlib.md5(json.dumps(data).encode()).hexdigest()    
+    return "b-" + hashdigest
 
 if __name__ == "__main__":
     cli()

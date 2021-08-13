@@ -43,9 +43,9 @@ def _upload_image(fn, tag=None, annotate=None):
     upload_image(fn, tag, annotate)
 
 def upload_image(fn, tag=None, annotate=None):
-    bucket = datalake.put_image(fn)
+    bucket_object = datalake.put_image(fn)
 
-    url = f"http://in.internal.odahub.io/dataapi/evaluate?public&target={bucket}&jpath=.image&png"
+    url = f"http://in.internal.odahub.io/dataapi/evaluate?public&target={bucket_object}&jpath=.image&png"
     logger.info(f"stored as {url}")
 
     q = f'<{url}> a oda:image .'
@@ -64,6 +64,8 @@ def upload_image(fn, tag=None, annotate=None):
     logger.info(q)    
 
     sparql.insert(q)
+
+    return bucket_object
 
 
 @cli.command("list-images")
