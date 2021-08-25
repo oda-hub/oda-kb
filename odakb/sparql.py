@@ -466,7 +466,9 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
 
     if tojson or tojdict:
         g = rdflib.Graph().parse(data=rdf, format='turtle') 
-        jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True).decode()
+        jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True)
+        if isinstance(jsonld, bytes):
+            jsonld = jsonld.decode()
 
     if tojson:
         print(jsonld) # TODO: where?
