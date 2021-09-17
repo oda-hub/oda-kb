@@ -7,9 +7,11 @@ import sys
 import json
 import io
 import ast
+import glob
 import click
 import hashlib
 
+import odakb.sparql
 
 
 import logging
@@ -175,6 +177,86 @@ def list_buckets():
                        ))
         except Exception as e:
             logger.warning("problematic bucket {}".format(bucket.name))
+
+
+def index_cc_bucket(bucket, meta):
+    logger.info("indexing %s", bucket)
+    logger.info("meta %s", meta)
+
+    args = meta['kwargs']
+
+    args
+
+    v = f'''    
+            oda:bucket-{bucket} oda:evaluation_of <{meta['query']}>;
+                                oda:bucket "{bucket}";
+    '''
+
+    for arg in ['osa_version', 'source_name', 'nscw']:
+        if arg in args:
+            v += f'''
+                                    oda:arg_{arg} "{args[arg]}";
+            '''
+
+    odakb.sparql.insert(v)
+    
+@cli.command("reindex")
+@click.option("--only-cached", is_flag=True)
+@click.option("--max-entries", type=int, default=None)
+def reindex(only_cached, max_entries):
+    client = get_minio()
+
+    if only_cached:
+        for bucket_dir in glob.glob("cc-data/*"):
+            bucket_name = os.path.basename(bucket_dir)
+            logger.debug("%s", bucket_dir)
+
+            index_cc_bucket(bucket_name, json.load(open(os.path.join(bucket_dir, "meta"))))
+        return
+
+    buckets = list(sorted(client.list_buckets(), key=lambda x:x.creation_date))
+
+    logger.info("total buckets: %s", len(buckets))
+
+    n_parsed = 0
+
+    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
+        #if bucket.name.startswith('odahub-b'): continue
+        if 'cc-' not in bucket.name: continue
+        try:
+            logger.info("{creation_date} {bucket_name:64} {bucket}".format(
+                        bucket_name=bucket.name, 
+                        creation_date=bucket.creation_date, 
+                        bucket=bucket
+                       ))
+            meta = json.loads(client.get_object(bucket.name, 'meta').read())
+            data = json.loads(client.get_object(bucket.name, 'data').read())
+            logger.info("{creation_date} {bucket_name:64} {meta} {data}".format(
+                        bucket_name=bucket.name, 
+                        creation_date=bucket.creation_date, 
+                        meta=meta,
+                        data=data.keys()
+                       ))
+
+            if 'kwargs' in meta and 'osa_version' in meta['kwargs']:
+                logger.info("\033[31m%s\033[0m", meta['kwargs']['osa_version'])
+
+                for k in 'meta', 'data':
+                    d = f"cc-data/{bucket.name}"
+                    os.makedirs(d, exist_ok=True)
+                    with open(f"{d}/{k}", "wb") as f:
+                        f.write(client.get_object(bucket.name, k).read())
+
+                index_cc_bucket(bucket.name, 
+                                meta=json.load(client.get_object(bucket.name, 'meta')))
+                n_parsed += 1
+
+                if max_entries is not None and max_entries < n_parsed:
+                    break
+
+        except Exception as e:
+            raise
+            logger.warning("problematic bucket {} : {}".format(bucket.name, e))
 
 @cli.command("put")
 @click.option("-b","--bucket", default=None)
