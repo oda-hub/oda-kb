@@ -90,6 +90,7 @@ def get_minio_secret():
     raise RuntimeError("unable to discover MINIO secret key: "+repr(failures))
 
 def get_minio():
+    # may also load fom ~/.mc/config.json
     return Minio(get_minio_url(),
               access_key=get_minio_user(),
               secret_key=get_minio_secret(),
