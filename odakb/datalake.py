@@ -1,3 +1,4 @@
+from typing import Tuple, Union
 import cwltool.factory # type: ignore
 import requests
 import pprint
@@ -100,7 +101,7 @@ def exists(bucket):
     client = get_minio()
     return client.bucket_exists(bucket)
 
-def restore(bucket, return_metadata = False, write_files=False):
+def restore(bucket: str, return_metadata = False, write_files=False) -> Union[Tuple, dict]:
     bucket_name, object_data_name, object_meta_name = full_name_to_bucket_object(bucket)
 
     client = get_minio()
