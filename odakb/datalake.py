@@ -12,6 +12,7 @@ import click
 import hashlib
 
 import odakb.sparql
+import odakb.plugins.cc
 
 
 import logging
@@ -179,39 +180,47 @@ def list_buckets():
             logger.warning("problematic bucket {}".format(bucket.name))
 
 
-def index_cc_bucket(bucket, meta):
-    logger.info("indexing %s", bucket)
-    logger.info("meta %s", meta)
+import pluggy
 
-    args = meta['kwargs']
+hookspec = pluggy.HookspecMarker("odakb_reindex")
 
-    args
+class MySpec:
+    @hookspec
+    def index_bucket(bucket, meta, client):
+        pass
 
-    v = f'''    
-            oda:bucket-{bucket} oda:evaluation_of <{meta['query']}>;
-                                oda:bucket "{bucket}";
-    '''
+pm = pluggy.PluginManager("odakb_reindex")
+pm.add_hookspecs(MySpec)
+#pm.load_setuptools_entrypoints("eggsample")
+pm.register(odakb.plugins.cc)
 
-    for arg in ['osa_version', 'source_name', 'nscw']:
-        if arg in args:
-            v += f'''
-                                    oda:arg_{arg} "{args[arg]}";
-            '''
 
-    odakb.sparql.insert(v)
-    
 @cli.command("reindex")
+@click.option("--recent-days", type=float, default=-1)
 @click.option("--only-cached", is_flag=True)
 @click.option("--max-entries", type=int, default=None)
-def reindex(only_cached, max_entries):
+@click.option("--select", default=None)
+@click.option("--single-bucket", default=None)
+def reindex(only_cached, max_entries, select, single_bucket, recent_days):    
     client = get_minio()
+
+    index_bucket = pm.hook.index_bucket
+
+    if single_bucket is not None:
+        meta = json.loads(client.get_object(single_bucket, 'meta').read())
+        index_bucket(bucket=single_bucket, meta=meta, client=client)
+        return
+        
 
     if only_cached:
         for bucket_dir in glob.glob("cc-data/*"):
             bucket_name = os.path.basename(bucket_dir)
             logger.debug("%s", bucket_dir)
 
-            index_cc_bucket(bucket_name, json.load(open(os.path.join(bucket_dir, "meta"))))
+            index_bucket(single=bucket_name, 
+                         meta=json.load(open(os.path.join(bucket_dir, "meta"))),
+                         client=client
+                         )
         return
 
     buckets = list(sorted(client.list_buckets(), key=lambda x:x.creation_date))
@@ -220,9 +229,15 @@ def reindex(only_cached, max_entries):
 
     n_parsed = 0
 
-    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
+    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):        
         #if bucket.name.startswith('odahub-b'): continue
         if 'cc-' not in bucket.name: continue
+
+        if select is not None:
+            import re
+            if not re.match(select, bucket.name):
+                continue
+
         try:
             logger.info("{creation_date} {bucket_name:64} {bucket}".format(
                         bucket_name=bucket.name, 
@@ -239,6 +254,8 @@ def reindex(only_cached, max_entries):
                        ))
 
             if 'kwargs' in meta and 'osa_version' in meta['kwargs']:
+                split_osa_version_arg(meta)
+
                 logger.info("\033[31m%s\033[0m", meta['kwargs']['osa_version'])
 
                 for k in 'meta', 'data':
