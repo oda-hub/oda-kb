@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/isgri-oda-spi-reference", "kwargs": {"subcases_pattern": "EXO_0331+530_0273", "reference_location": "/tmp/nb2w-rb0zcbt4", "source_name": "EXO 0331+530", "osa_version": "OSA11.0-dev210628.1813-17265", "nscw": 50, "systematic_fraction": 0.03}, "version": "145c6ca"}

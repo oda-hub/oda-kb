@@ -1,3 +1,5 @@
+from datetime import datetime
+import re
 from typing import Tuple, Union
 import cwltool.factory # type: ignore
 import requests
@@ -198,10 +200,10 @@ pm.register(odakb.plugins.cc)
 
 
 @cli.command("reindex")
-@click.option("--recent-days", type=float, default=-1)
+@click.option("--recent-days", type=float, default=None)
 @click.option("--only-cached", is_flag=True)
 @click.option("--max-entries", type=int, default=None)
-@click.option("--select", default=None)
+@click.option("--select", default="-cc-")
 @click.option("--single-bucket", default=None)
 def reindex(only_cached, max_entries, select, single_bucket, recent_days):    
     client = get_minio()
@@ -231,15 +233,36 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
 
     n_parsed = 0
 
-    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):        
-        #if bucket.name.startswith('odahub-b'): continue
-        if 'cc-' not in bucket.name: continue
+    skipped_too_old = 0
+    skipped_filter_name = 0
 
-        if select is not None:
-            import re
-            if not re.match(select, bucket.name):
-                continue
+    for i, bucket in enumerate(buckets):        
+        if i % int(len(buckets)/10) == 0:
+            logger.info("parsed %i/%i buckets, %i too old, %i mismatch name, %i good", 
+                            i, 
+                            len(buckets), 
+                            skipped_too_old, 
+                            skipped_filter_name, 
+                            n_parsed)
 
+        logger.debug("trying name %s", bucket.name)
+        
+        bucket_age_days = (datetime.now().timestamp() - bucket.creation_date.timestamp()) / 24 / 3600
+
+        if recent_days is not None:
+            if bucket_age_days > recent_days:
+                logger.debug("skipping for age %s %s", bucket_age_days, recent_days)
+                skipped_too_old += 1
+                continue                
+
+        #if bucket.name.startswith('odahub-b'): continue        
+        if not re.search(select, bucket.name):
+            logger.debug("skipping for name %s", bucket.name)
+            skipped_filter_name += 1
+            continue
+        
+        logger.info("bucket %s age %f days", bucket.name, bucket_age_days)
+        
         try:
             logger.info("{creation_date} {bucket_name:64} {bucket}".format(
                         bucket_name=bucket.name, 
@@ -256,7 +279,7 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
                        ))
 
             if 'kwargs' in meta and 'osa_version' in meta['kwargs']:
-                split_osa_version_arg(meta)
+                # split_osa_version_arg(meta)
 
                 logger.info("\033[31m%s\033[0m", meta['kwargs']['osa_version'])
 
@@ -266,8 +289,9 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
                     with open(f"{d}/{k}", "wb") as f:
                         f.write(client.get_object(bucket.name, k).read())
 
-                index_cc_bucket(bucket.name, 
-                                meta=json.load(client.get_object(bucket.name, 'meta')))
+                index_bucket(bucket=bucket.name, 
+                             meta=json.load(client.get_object(bucket.name, 'meta')),
+                             client=client)
                 n_parsed += 1
 
                 if max_entries is not None and max_entries < n_parsed:
@@ -276,6 +300,8 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
         except Exception as e:
             raise
             logger.warning("problematic bucket {} : {}".format(bucket.name, e))
+
+
 
 @cli.command("put")
 @click.option("-b","--bucket", default=None)

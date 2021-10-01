@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 def split_osa_version_arg(meta):
     _ = meta['kwargs']['osa_version'].split('--')
     meta['kwargs']['osa_version'] = _[0]
-    if len(_) > 2:
+    if len(_) > 1:
         meta['kwargs']['osa_version_modifiers'] = _[1:]
 
     

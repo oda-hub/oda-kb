@@ -1,0 +1,8 @@
+    if debug:
+        setup_logging(logging.DEBUG)
+        logger.error('test erro')
+        logger.info('test erro')
+    elif quiet:
+        setup_logging(logging.ERROR)
+    else:
+        setup_logging()

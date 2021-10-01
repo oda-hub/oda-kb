@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/grs1915", "kwargs": {"nbname": "verify", "nscw": 50, "osa_version": "OSA11.0-dev210827.0528-37487", "subcases_pattern": "GRS_1915+105_0246", "systematic_fraction": 0.01}, "version": "d545eb9"}

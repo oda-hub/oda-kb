@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/v0332", "kwargs": {"nbname": "verify", "nscw": 50, "osa_version": "OSA11.0-dev210628.1813-17265", "subcases_pattern": "EXO_0331+530_0273", "systematic_fraction": 0.03}, "version": "0.1.0-1-g0b001a3"}

@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/crab", "kwargs": {"nbname": "crab", "osa_version": "OSA11.0-dev1105", "nscw": 50, "subcases_pattern": "0170", "systematic_fraction": 0.06}, "version": "949f172"}

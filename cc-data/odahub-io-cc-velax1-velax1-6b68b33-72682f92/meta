@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/velax1", "kwargs": {"nbname": "velax1", "chi2_limit": 1.2, "ng_sig_limit": 3.0, "nscw": 3, "osa_version": "OSA10.2", "reference_instrument": "spi", "subcases_pattern": "_03", "systematic_fraction": 0.01}, "version": "6b68b33"}

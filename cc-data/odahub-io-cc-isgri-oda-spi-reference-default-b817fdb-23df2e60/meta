@@ -1,0 +1,1 @@
+{"query": "http://odahub.io/cc/isgri-oda-spi-reference", "kwargs": {"subcases_pattern": "_0352", "reference_location": "/home/ferrigno/INTEGRAL/cc-workflows/cc-1a0535", "source_name": "1A 0535+262", "osa_version": "OSA11.0-dev210827.0528-37487", "nscw": 100, "systematic_fraction": 0.01}, "version": "b817fdb"}
