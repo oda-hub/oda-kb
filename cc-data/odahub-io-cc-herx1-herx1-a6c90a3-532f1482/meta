@@ -1,1 +1,0 @@
-{"query": "http://odahub.io/cc/herx1", "kwargs": {"nbname": "herx1", "emin_values": [25], "ng_sig_limit": 2.0, "nscw": 5, "osa_version": "OSA11.0", "reference_instrument": "nustar", "source_name": "Her X-1", "subcases_pattern": "_2105", "systematic_fraction": 0.01}, "version": "a6c90a3"}

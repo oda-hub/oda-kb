@@ -1,1 +1,0 @@
-{"query": "http://odahub.io/cc/herx1", "kwargs": {"nbname": "herx1", "source_name": "Her X-1", "osa_version": "OSA11.0-dev210827.0528-37487--iisglobal", "nscw": -1, "systematic_fraction": 0.01, "subcases_pattern": "_1571", "reference_instrument": "spi", "emin_values": [25.0]}, "version": "c8a75f3"}

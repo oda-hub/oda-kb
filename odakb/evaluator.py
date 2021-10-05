@@ -393,6 +393,7 @@ def evaluate_local(query, *args, **kwargs):
     cached = kwargs.pop('_cached', True)
     write_files = kwargs.pop('_write_files', False)
     return_metadata = kwargs.pop('_return_metadata', False)
+    require_version = kwargs.pop('_require_version', None)
 
     if query.endswith(".ipynb"):
         query, nb = query.rsplit("/", 1)
@@ -433,6 +434,12 @@ def evaluate_local(query, *args, **kwargs):
     else:
         raise Exception(f" requested query '{query}' or '{canonical_query}' not found in context, have {'; '.join(list(context.keys()))}")
 
+    if require_version is not None:
+        if require_version != metadata['version']:
+            raise RuntimeError(f'incorrect version provided. '
+                               f'Requested {require_version} but have {metadata["version"]}. '
+                               f'Version discovery may be improved')
+        
     uname = to_bucket_name(unique_name(query, args, kwargs, context)) # unique-name contains version
     
     logger.info("\033[31mbucket name %s\033[0m", uname)

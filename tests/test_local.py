@@ -1,3 +1,4 @@
+import pytest
 
 def test_directory_local():
     from odakb import evaluate
@@ -47,12 +48,17 @@ def test_local_parameterized():
     assert d
 
 
-def test_local_cwd():
+@pytest.mark.parametrize('require_version', [None, '5b5a1db', 'bad'])
+def test_local_cwd(require_version):
     from odakb import evaluate
 
     from path import Path
     
-    d = evaluate("http://odahub.io/test/testw", t0=999)
+    if require_version is None:
+        d = evaluate("http://odahub.io/test/testw", t0=999)
+    elif require_version == 'bad':        
+        with pytest.raises(RuntimeError) as e:
+            d = evaluate("http://odahub.io/test/testw", t0=999, _require_version=require_version)
 
     with Path("code/odahub_io_test_testw"):
         d = evaluate("http://odahub.io/test/testw")
