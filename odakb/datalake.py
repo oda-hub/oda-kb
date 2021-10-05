@@ -190,13 +190,25 @@ hookspec = pluggy.HookspecMarker("odakb_reindex")
 
 class MySpec:
     @hookspec
-    def index_bucket(bucket, meta, client):
+    def index_bucket(bucket_name, meta, client, creation_date_timestamp):
         pass
 
 pm = pluggy.PluginManager("odakb_reindex")
 pm.add_hookspecs(MySpec)
 #pm.load_setuptools_entrypoints("eggsample")
 pm.register(odakb.plugins.cc)
+
+
+@cli.command("ingest-local-cc-cache")
+def ingest():    
+    client = get_minio()
+
+    for b in glob.glob("cc-data/*"):
+        bucket_name = b.replace('cc-data/', '')
+        store(bucket_name=bucket_name, 
+              data=json.load(open(b + "/data")),
+              meta=json.load(open(b + "/meta")))
+
 
 
 @cli.command("reindex")
@@ -212,7 +224,7 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
 
     if single_bucket is not None:
         meta = json.loads(client.get_object(single_bucket, 'meta').read())
-        index_bucket(bucket=single_bucket, meta=meta, client=client)
+        index_bucket(bucket_name=single_bucket, meta=meta, client=client, creation_date_timestamp=None)
         return
         
 
@@ -221,9 +233,10 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
             bucket_name = os.path.basename(bucket_dir)
             logger.debug("%s", bucket_dir)
 
-            index_bucket(single=bucket_name, 
+            index_bucket(bucket_name=bucket_name, 
                          meta=json.load(open(os.path.join(bucket_dir, "meta"))),
-                         client=client
+                         client=client,
+                         creation_date_timestamp=None
                          )
         return
 
@@ -232,18 +245,20 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
     logger.info("total buckets: %s", len(buckets))
 
     n_parsed = 0
+    n_failed = 0
 
     skipped_too_old = 0
     skipped_filter_name = 0
 
     for i, bucket in enumerate(buckets):        
         if i % int(len(buckets)/10) == 0:
-            logger.info("parsed %i/%i buckets, %i too old, %i mismatch name, %i good", 
+            logger.info("parsed %i/%i buckets, %i too old, %i mismatch name, %i good %i failed", 
                             i, 
                             len(buckets), 
                             skipped_too_old, 
                             skipped_filter_name, 
-                            n_parsed)
+                            n_parsed,
+                            n_failed)
 
         logger.debug("trying name %s", bucket.name)
         
@@ -289,16 +304,21 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
                     with open(f"{d}/{k}", "wb") as f:
                         f.write(client.get_object(bucket.name, k).read())
 
-                index_bucket(bucket=bucket.name, 
-                             meta=json.load(client.get_object(bucket.name, 'meta')),
-                             client=client)
-                n_parsed += 1
+                try:
+                    index_bucket(bucket_name=bucket.name,                              
+                                meta=json.load(client.get_object(bucket.name, 'meta')), 
+                                client=client,
+                                creation_date_timestamp=bucket.creation_date.timestamp())
+                    n_parsed += 1
+                except RuntimeError as e:
+                    n_failed += 1
+                    continue
 
                 if max_entries is not None and max_entries < n_parsed:
                     break
 
         except Exception as e:
-            raise
+            #raise
             logger.warning("problematic bucket {} : {}".format(bucket.name, e))
 
 

@@ -24,17 +24,15 @@ def parse_html_pars(html):
     pars = {}
     for k, v in [l.split("=", 1) for l in cell_python.split("\n") if len(l.split("=", 1)) == 2]:
         v_no_comment = v.split("#", 1)[0]
+        if k.strip().startswith("#"): continue
         pars[k.strip()] = v.strip("\"\' ")
 
     logger.debug("pars: %s", pars)
 
     return pars
 
-def extract_params(bucket):
-    from odakb.datalake import restore # else not initialized
+def extract_params(data):
 
-    meta, data = restore(bucket, return_metadata=True)
-    
     output_notebook_html = base64.b64decode(data['output_notebook_html_content']).decode()
 
     with open("f.html", "w") as f:
@@ -48,22 +46,57 @@ def extract_params(bucket):
     
     return {**default_pars, **pars}
 
-@pluggy.HookimplMarker("odakb_reindex")
-def index_bucket(bucket, meta, client):
+def interpret_summary(bucket_uri, data):
+    print(data.keys())
 
-    logger.info("indexing %s", bucket)
+    if 'summary' not in data:
+        raise RuntimeError        
+            
+    try:
+        isgri_times = data['summary']['isgri_times']
+    except KeyError:
+        raise RuntimeError        
+    
+    try:
+        isgri_t1, isgri_t2 = map(float, isgri_times.split("--"))
+    except:
+        isgri_t1, isgri_t2 = isgri_times
+
+    print(data['summary'])
+    print(data['summary']['status'])
+
+    print(data['summary']['isgri_times'])
+    
+    return f'''
+    {bucket_uri} oda:out_status "{data['summary']['status']}" ;
+                 oda:out_isgri_t1 "{isgri_t1}" ;
+                 oda:out_isgri_t2 "{isgri_t2}" .
+    '''
+
+
+        
+
+@pluggy.HookimplMarker("odakb_reindex")
+def index_bucket(bucket_name, meta, client, creation_date_timestamp):
+
+    logger.info("indexing %s", bucket_name)
     logger.info("meta %s", meta)
 
     split_osa_version_arg(meta)
 
-    args = {**extract_params(bucket), **meta['kwargs']}
+    from odakb.datalake import restore # else not initialized
+    meta, data = restore(bucket_name, return_metadata=True)
+
+
+    args = {**extract_params(data), **meta['kwargs']}
 
     #data = client.get_object(bucket, 'data')    
 
+    bucket_uri = f'oda:bucket-{bucket_name}'
 
     v = f'''    
-            oda:bucket-{bucket} oda:evaluation_of <{meta['query']}>;
-                                oda:bucket "{bucket}";'''
+            {bucket_uri}        oda:evaluation_of <{meta['query']}>;
+                                oda:bucket "{bucket_name}";'''
 
     # TODO: detect used dependent workflow!
 
@@ -73,11 +106,14 @@ def index_bucket(bucket, meta, client):
         if arg in args:
             v += f'''
                                 oda:arg_{arg} "{args[arg]}";'''
+    v += " .\n"
         
+    v += interpret_summary(bucket_uri, data)    
+
+    if creation_date_timestamp is not None:
+        v += f'''
+            {bucket_uri} oda:creation_date_timestamp {creation_date_timestamp} .
+        '''
+
     print("to ingest:", v)
-
-
-    ## 
-    
-
     odakb.sparql.insert(v)

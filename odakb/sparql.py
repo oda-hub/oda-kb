@@ -326,6 +326,19 @@ def discover_oda_sparql_root(service):
 
 
 def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
+    try:
+        return _execute_sparql(data, endpoint, invalid_raise, raw=raw, service=service)
+    except SPARQLException as e:
+        debug_fn = "debug.ttl"
+        logger.error("SPARQL at %s returns error: %s; problematic query written to %s", 
+                     endpoint, 
+                     e, 
+                     debug_fn)
+        with open(debug_fn, "w") as f:
+            f.write(data)
+        
+
+def _execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
         
     oda_sparql_root = discover_oda_sparql_root(service)
