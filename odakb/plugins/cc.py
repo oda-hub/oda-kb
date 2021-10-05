@@ -50,7 +50,7 @@ def interpret_summary(bucket_uri, data):
     print(data.keys())
 
     if 'summary' not in data:
-        raise RuntimeError        
+        return ''
             
     try:
         isgri_times = data['summary']['isgri_times']
