@@ -13,9 +13,14 @@ logger.setLevel(logging.INFO)
 def split_osa_version_arg(meta):
     _ = meta['kwargs']['osa_version'].split('--')
     meta['kwargs']['osa_version'] = _[0]
+
+    print("extracted osa version:", meta['kwargs']['osa_version'])
+
     if len(_) > 1:
-        meta['kwargs']['osa_version_modifiers'] = _[1:]
-    
+        meta['kwargs']['osa_version_modifiers'] = _[1:]    
+        print("extracted osa version modifiers:", meta['kwargs']['osa_version_modifiers'])
+    else:
+        print("no osa version modifiers!")
 
 
 def parse_html_pars(html):
@@ -98,13 +103,12 @@ def interpret_summary(bucket_uri, data):
 def index_bucket(bucket_name, meta, client, creation_date_timestamp):
 
     logger.info("indexing %s", bucket_name)
-    logger.info("meta %s", meta)
-
-    split_osa_version_arg(meta)
+    #logger.info("meta %s", input_meta)
 
     from odakb.datalake import restore # else not initialized
     meta, data = restore(bucket_name, return_metadata=True)
 
+    split_osa_version_arg(meta)
 
     args = {**extract_params(data), **meta['kwargs']}
     
@@ -127,10 +131,17 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
                                 oda:calls_{re.sub('[^a-z0-9]+', '_', c['origin'])}_version "{c['version']}";''';
 
     # for arg in ['osa_version', 'source_name', 'nscw']:
-    for arg in args.keys():
-        if arg in args:
+    for arg, value in args.items():
+        print(">>", arg, value)
+        if isinstance(value, list):
+            values = value
+        else:
+            values = [value]
+
+        for _value in values:
             v += f'''
-                                oda:arg_{arg} "{args[arg]}";'''
+                            oda:arg_{arg} "{_value}";'''
+
     v += " .\n"
         
     v += interpret_summary(bucket_uri, data)    
