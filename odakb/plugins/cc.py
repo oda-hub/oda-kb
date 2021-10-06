@@ -15,8 +15,9 @@ def split_osa_version_arg(meta):
     meta['kwargs']['osa_version'] = _[0]
     if len(_) > 1:
         meta['kwargs']['osa_version_modifiers'] = _[1:]
-
     
+
+
 def parse_html_pars(html):
     cell_python = html2text.HTML2Text().handle(html)    
     logger.debug("cell_python: %s", cell_python)
@@ -30,6 +31,23 @@ def parse_html_pars(html):
     logger.debug("pars: %s", pars)
 
     return pars
+
+
+def extract_internal_callable(data):
+    output_notebook_html = base64.b64decode(data['output_notebook_html_content']).decode()
+
+    matches = re.findall(
+        (
+        '^.*?version: ([a-z0-9]*?)<.*?'
+        '^.*?origin: (.*?)<'        
+        #'^.*?callable_kind: http://odahub.io/callable/notebook'
+        ),
+        output_notebook_html, re.M | re.S)
+
+    return [
+            dict(version=r[0], origin=r[1])
+            for r in matches
+         ]
 
 def extract_params(data):
 
@@ -89,7 +107,7 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
 
 
     args = {**extract_params(data), **meta['kwargs']}
-
+    
     #data = client.get_object(bucket, 'data')    
 
     bucket_uri = f'oda:bucket-{bucket_name}'
@@ -98,8 +116,15 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
             {bucket_uri}        oda:evaluation_of <{meta['query']}>;
                                 oda:bucket "{bucket_name}";'''
 
-    # TODO: detect used dependent workflow!
+    # detect used dependent workflow!
+    called_callables = extract_internal_callable(data)
 
+
+    for c in called_callables:
+        v += f'''
+                                oda:calls <{c['origin']}>;
+                                oda:calls <{c['origin']}-{c['version']}>;
+                                oda:calls_{re.sub('[^a-z0-9]+', '_', c['origin'])}_version "{c['version']}";''';
 
     # for arg in ['osa_version', 'source_name', 'nscw']:
     for arg in args.keys():
