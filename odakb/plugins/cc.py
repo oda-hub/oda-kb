@@ -39,15 +39,19 @@ def parse_html_pars(html):
 
 
 def extract_internal_callable(data):
+    logger.info('decoding...')
     output_notebook_html = base64.b64decode(data['output_notebook_html_content']).decode()
+    logger.info('decoded')
 
+    logger.info('finding references...')
     matches = re.findall(
         (
-        '^.*?version: ([a-z0-9]*?)<.*?'
-        '^.*?origin: (.*?)<'        
+            '^.*?version: ([a-z0-9]*?)<.*?'
+            '^.*?origin: (.*?)<'        
         #'^.*?callable_kind: http://odahub.io/callable/notebook'
         ),
         output_notebook_html, re.M | re.S)
+    logger.info('found %s references', len(matches))
 
     return [
             dict(version=r[0], origin=r[1])
@@ -89,6 +93,8 @@ def interpret_summary(bucket_uri, data):
     print(data['summary']['status'])
 
     print(data['summary']['isgri_times'])
+
+    parameter_comparison = data['summary']['parameter_comparison']
     
     return f'''
     {bucket_uri} oda:out_status "{data['summary']['status']}" ;
@@ -110,6 +116,7 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
 
     split_osa_version_arg(meta)
 
+    logger.info("extracting params...")
     args = {**extract_params(data), **meta['kwargs']}
     
     #data = client.get_object(bucket, 'data')    
@@ -121,6 +128,8 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
                                 oda:bucket "{bucket_name}";'''
 
     # detect used dependent workflow!
+
+    logger.info("extracting internal callable...")
     called_callables = extract_internal_callable(data)
 
 
@@ -144,6 +153,7 @@ def index_bucket(bucket_name, meta, client, creation_date_timestamp):
 
     v += " .\n"
         
+    logger.info("interpretting summary...")
     v += interpret_summary(bucket_uri, data)    
 
     if creation_date_timestamp is not None:
