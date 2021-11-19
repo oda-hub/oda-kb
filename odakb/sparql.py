@@ -278,12 +278,15 @@ def _construct(data, jsonld, output):
 def construct(data, jsonld):
     init()
 
-    data = compose_sparql("CONSTRUCT WHERE {\n" + data + "\n}")
+    data = compose_sparql("CONSTRUCT WHERE {\n" + data + "\n} LIMIT 10000")
 
     r = execute_sparql(compose_sparql(data), "query", True, True)
 
     if jsonld:
-        j = rdflib.Graph().parse(data=r, format="turtle").serialize(format="json-ld", indent=4, sort_keys=True).decode()
+        try:
+            j = rdflib.Graph().parse(data=r, format="turtle").serialize(format="json-ld", indent=4, sort_keys=True).decode()
+        except:
+            j = rdflib.Graph().parse(data=r, format="turtle").serialize(format="json-ld", indent=4, sort_keys=True)
         return json.loads(j)
     else:
         return r
@@ -478,7 +481,14 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         return rdf
 
     if tojson or tojdict:
-        g = rdflib.Graph().parse(data=rdf, format='turtle') 
+        try:
+            rdf = re.sub(r"[\$^\\\{\}]", "", rdf)
+            g = rdflib.Graph().parse(data=rdf, format='turtle') 
+        except:
+            with open("problematic-rdf.ttl", "w") as f:
+                f.write(rdf)
+            raise
+
         jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True)
         if isinstance(jsonld, bytes):
             jsonld = jsonld.decode()
