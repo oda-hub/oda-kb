@@ -484,8 +484,8 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
         try:
             rdf = re.sub(r"[\$^\\\{\}]", "", rdf)
             g = rdflib.Graph().parse(data=rdf, format='turtle') 
-        except:
-            with open("problematic-rdf.ttl", "w") as f:
+        except:            
+            with open("/tmp/problematic-rdf.ttl", "w") as f:
                 f.write(rdf)
             raise
 
