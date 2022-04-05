@@ -482,11 +482,13 @@ def _select(query=None, form=None, todict=True, tojson=False, tordf=False, tojdi
 
     if tojson or tojdict:
         try:
-            rdf = re.sub(r"[\$^\\\{\}]", "", rdf)
+            rdf = re.sub(r"[\$\^\\\{\}]", "", rdf)
+            print("filtered rdf", rdf)
             g = rdflib.Graph().parse(data=rdf, format='turtle') 
         except:            
             with open("/tmp/problematic-rdf.ttl", "w") as f:
                 f.write(rdf)
+                print("problematic RDF written to", f.name)
             raise
 
         jsonld = g.serialize(format='json-ld', indent=4, sort_keys=True)
@@ -587,7 +589,7 @@ def render_uri(uri, entry=None):
     if r == "a":
         return r
 
-    return "\"%s\""%r.strip("\"")
+    return "\"{}\"".format(r.replace("\"", ""))
 
 def nuri(uri):
     return render_uri(uri)
