@@ -9,10 +9,12 @@ from minio import Minio # type: ignore
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou, # type: ignore
              BucketAlreadyExists)
 
+from .config import settings
+
 def get_minio():
-    return Minio('minio-internal.odahub.io',
-              access_key='minio',
-              secret_key=open(os.environ.get('HOME')+"/.minio").read().strip(),
+    return Minio(settings.minio.server,
+              access_key=settings.minio.access_key,
+              secret_key=settings.minio.secret_key,
               secure=False)
 
 def run(inputs):
@@ -94,7 +96,7 @@ SELECT * WHERE {
 } 
 LIMIT 10
 '''),
-        auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
+        auth=requests.auth.HTTPBasicAuth("admin", open(settings.jena.password).read().strip())
     )
 
 
@@ -130,7 +132,7 @@ def create_record(inputs, results, bucket_name):
     { 
         %s
     }'''%entries,
-        auth=requests.auth.HTTPBasicAuth("admin", open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip())
+        auth=requests.auth.HTTPBasicAuth("admin", settings.jena.password)
     )
 
 

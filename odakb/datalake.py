@@ -16,6 +16,7 @@ import hashlib
 
 import odakb.sparql
 import odakb.plugins.cc
+from .config import settings
 
 
 import logging
@@ -81,7 +82,8 @@ def get_minio_secret():
     failures = {}
     for n, m in {
                 "environment variable (MINIO_KEY)": lambda :os.environ['MINIO_KEY'].strip(),
-                "dot file in home: ~/.minio-key": lambda :open(os.environ.get('HOME')+"/.minio-key").read().strip(),
+                "dot file in home: ~/.minio-key": lambda :open(os.environ.get('HOME', '.')+"/.minio-key").read().strip(),
+                "dynaconf": lambda: settings.minio.secret_key
                 }.items():
         try:
             r=m()
@@ -172,7 +174,7 @@ def delete(bucket):
 def list_buckets():
     client = get_minio()
 
-    for bucket in sorted(client.list_buckets(), key=lambda x:x.creation_date):
+    for bucket in sorted(client.list_buckets() or [], key=lambda x:x.creation_date):
         try:
             meta = json.loads(client.get_object(bucket.name, 'meta').read())
             logger.info("{creation_date} {source_name:>10} {bucket_name:64}".format(
@@ -240,7 +242,7 @@ def reindex(only_cached, max_entries, select, single_bucket, recent_days):
                          )
         return
 
-    buckets = list(sorted(client.list_buckets(), key=lambda x:x.creation_date))
+    buckets = list(sorted(client.list_buckets() or [], key=lambda x:x.creation_date))
 
     logger.info("total buckets: %s", len(buckets))
 

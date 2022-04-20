@@ -97,8 +97,8 @@ def load_graph(G, serial, shortcuts=False):
 def load_defaults(default_prefixes, default_graphs):
 
     for odakb_defaults in [
-                os.path.join("/etc/odakb/defaults.yaml"),
-                os.path.join(getenv("HOME"), ".odakb", "defaults.yaml"),
+                "/etc/odakb/defaults.yaml",
+                os.path.join(getenv("HOME", "."), ".odakb", "defaults.yaml"),
             ]:
         try:
             logger.debug("oda defaults from %s", odakb_defaults)
@@ -133,7 +133,7 @@ def load_defaults(default_prefixes, default_graphs):
             raise
 
     try:
-        odakb_graphs = glob.glob(os.path.join(getenv("HOME"), ".odakb", "graphs.d","*"))
+        odakb_graphs = glob.glob(os.path.join(getenv("HOME", "."), ".odakb", "graphs.d","*"))
         logger.debug("default graphs from: %s", odakb_graphs)
         for oda_graph_fn in odakb_graphs:
             default_graphs.append(open(oda_graph_fn).read())
@@ -238,8 +238,8 @@ def get_jena_password():
 
     for n, m in {
                 'environ': lambda:os.environ['JENA_PASSWORD'].strip(),
-                'dynaconf': lambda:odakb.config.settings.jena_password,
-                'homefile': lambda:open(os.path.join(os.environ.get('HOME'), '.jena-password')).read().strip(),
+                'dynaconf': lambda:odakb.config.settings.jena.password,
+                'homefile': lambda:open(os.path.join(os.environ.get('HOME', '.'), '.jena-password')).read().strip(),
                 #'keyring': lambda:keyring.get_password("jena", "admin"),
             }.items():
         try:
@@ -309,7 +309,7 @@ def discover_oda_sparql_root(service):
     for n, m, obsolete in [
                 ("service argument", lambda: service, False),
                 ("default_oda_sparql_root", lambda: default_oda_sparql_root, False),
-                ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME"), ".oda-sparql-root")).read().strip(), False),
+                ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME", '.'), ".oda-sparql-root")).read().strip(), False),
                 ("dynaconf", lambda: odakb.config.settings.sparql_root, False),
                 ("default public endpoint", lambda: "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb", False)
             ]:
