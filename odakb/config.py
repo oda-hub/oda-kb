@@ -1,12 +1,12 @@
 import click
 
 from dynaconf import Dynaconf, Validator
-from os import path, environ
+from os import path, getenv
 
 settings = Dynaconf(
     settings_files=[   
-        path.join(environ["HOME"], ".odakb/settings.toml"),
-        path.join(environ["HOME"], ".odakb/private.toml"),
+        path.join(getenv("HOME", "."), ".odakb/settings.toml"),
+        path.join(getenv("HOME", "."), ".odakb/private.toml"),
     ],
 
     environments=False,
