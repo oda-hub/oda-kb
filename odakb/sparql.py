@@ -305,13 +305,16 @@ def _execute_sparql(data, endpoint="query", service=None):
 
 def discover_oda_sparql_root(service):
     oda_sparql_root = None
+    interface = None
     
-    for n, m, obsolete in [
-                ("service argument", lambda: service, False),
-                ("default_oda_sparql_root", lambda: default_oda_sparql_root, False),
-                ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME", '.'), ".oda-sparql-root")).read().strip(), False),
-                ("dynaconf", lambda: odakb.config.settings.sparql_root, False),
-                ("default public endpoint", lambda: "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb", False)
+    for n, m, obsolete, interface in [
+                # https://graphdb.obsuks1.unige.ch/repositories/dataanalysis?query=construct+where+%7B+%0A%09%3Fs+%3Fp+%3Fo+.%0A%7D+limit+100+%0A
+                ("service argument", lambda: service, False, "fuseki"),
+                ("default_oda_sparql_root", lambda: default_oda_sparql_root, False, "fuseki"),
+                ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME", '.'), ".oda-sparql-root")).read().strip(), False, "fuseki"),
+                ("dynaconf", lambda: odakb.config.settings.sparql_root, False, "fuseki"),
+                ("default public endpoint", lambda: "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb", False, "fuseki")                
+                ("default graphdb", lambda: "https://graphdb.obsuks1.unige.ch/repositories/dataanalysis", False, "graphdb"),
             ]:
         try:
             oda_sparql_root = m()
@@ -325,7 +328,7 @@ def discover_oda_sparql_root(service):
         except Exception as e:
             logger.debug("\033[33mfailed to discover oda_sparql_root with %s due to %s\033[0m", n, e)                                
 
-    return oda_sparql_root
+    return oda_sparql_root, interface
 
 
 def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
@@ -344,31 +347,62 @@ def execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
 def _execute_sparql(data, endpoint, invalid_raise, raw=False, service=None):
     logger.debug("data: %s", repr(data))
         
-    oda_sparql_root = discover_oda_sparql_root(service)
+    oda_sparql_root, oda_sparql_interface = discover_oda_sparql_root(service)
 
     t0=time.time()
 
     logger.info("ODA Knowledge Base (SPARQL) root is \033[32m%s\033[0m", oda_sparql_root)
 
-    url = oda_sparql_root + "/" + endpoint
+    if oda_sparql_interface == "fuseki":
+        url = oda_sparql_root + "/" + endpoint
+    
+        if endpoint == "update":    
+            auth=requests.auth.HTTPBasicAuth("admin", 
+                                            get_jena_password())
+            r=requests.post(url,
+                            data=data,
+                            auth=auth
+                            )
 
-    if endpoint == "update":    
-        auth=requests.auth.HTTPBasicAuth("admin", 
-                                         get_jena_password())
-        r=requests.post(url,
-                        data=data,
-                        auth=auth
+        elif endpoint == "query":
+            auth=None
+            r=requests.post(url,
+                            params=dict(query=data)
                         )
-    elif endpoint == "query":
-        auth=None
-        r=requests.post(url,
-                        params=dict(query=data)
-                       )
-    else:
-        auth=None
-        r=requests.post(oda_sparql_root,
-                        params=dict(query=data)
-                       )
+        else:
+            auth=None
+            r=requests.post(oda_sparql_root,
+                            params=dict(query=data)
+                        )
+    elif oda_sparql_interface == "graphdb":
+        url = oda_sparql_root
+    
+        if endpoint == "update":    
+            raise NotImplementedError
+            # auth=requests.auth.HTTPBasicAuth("admin", 
+            #                                 get_jena_password())
+            # r=requests.post(url,
+            #                 data=data,
+            #                 auth=auth
+            #                 )
+
+        elif endpoint == "query":
+            # auth=None
+            # r=requests.post(url,
+            #                 params=dict(query=data)
+            #             )
+            auth=None
+            r=requests.get(url,
+                           params=dict(query=data),
+                           headers={'Accept': 'application/json'}
+                        )
+        else:
+            raise NotImplementedError
+            auth=None
+            r=requests.post(oda_sparql_root,
+                            params=dict(query=data)
+                        )
+
 
     note_stats(spent_seconds=time.time()-t0, query_size=len(data))
     
