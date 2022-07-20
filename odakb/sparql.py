@@ -314,7 +314,7 @@ def discover_oda_sparql_root(service):
                 ("HOME/.oda-sparql-root", lambda: open(os.path.join(getenv("HOME", '.'), ".oda-sparql-root")).read().strip(), False, "fuseki"),
                 ("dynaconf", lambda: odakb.config.settings.sparql_root, False, "fuseki"),
                 ("default public endpoint", lambda: "https://www.astro.unige.ch/cdci/astrooda/dispatch-data/gw/odakb", False, "fuseki"),
-                ("default graphdb", lambda: "https://graphdb.obsuks1.unige.ch/repositories/dataanalysis", False, "graphdb"),
+                ("unige graphdb", lambda: "https://graphdb.obsuks1.unige.ch/repositories/dataanalysis", False, "graphdb"),
             ]:
         try:
             oda_sparql_root = m()
