@@ -8,8 +8,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
 
-    - name: Download .vale.ini
-      run: wget https://raw.githubusercontent.com/errata-ai/vale/master/.vale.ini -O .vale.ini
 
     - name: Creating directories
       run: |
@@ -26,8 +24,6 @@ jobs:
         styles: |
           https://github.com/errata-ai/Microsoft/releases/latest/download/Microsoft.zip
           https://github.com/errata-ai/write-good/releases/latest/download/write-good.zip
-        # Optional
-        config: https://raw.githubusercontent.com/errata-ai/vale/master/.vale.ini
 
         # Optional
         files: README.md
