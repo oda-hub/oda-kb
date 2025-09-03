@@ -11,6 +11,10 @@ jobs:
     - name: Download .vale.ini
       run: wget https://raw.githubusercontent.com/errata-ai/vale/master/.vale.ini -O .vale.ini
 
+    - name: Creating directories
+      run: |
+        mkdir -p config/vocabularies/Vale
+
     - name: Vale
       uses: errata-ai/vale-action@reviewdog
       with:
