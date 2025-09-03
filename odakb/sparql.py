@@ -112,7 +112,7 @@ def load_defaults(default_prefixes, default_graphs):
     
 
     for ontology_mirror in [
-                    "https://volodymyrss.github.io/",
+                    "https://www.astro.unige.ch/~savchenk/volodymyrss.github.io/",
                     "http://ontology.odahub.io/",
                 ]:
         try:
