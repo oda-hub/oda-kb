@@ -15,6 +15,9 @@ jobs:
       run: |
         mkdir -p config/vocabularies/Vale
 
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Vale
       uses: errata-ai/vale-action@reviewdog
       with:
