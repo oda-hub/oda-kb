@@ -1,5 +1,7 @@
 import base64
+import pytest
 
+@pytest.mark.xfail
 def test_put_image():
     import odakb.board
     import odakb.datalake

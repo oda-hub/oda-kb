@@ -14,7 +14,6 @@ jobs:
     - name: Creating directories
       run: |
         mkdir -p config/vocabularies/Vale
-        mkdir -p config/vocabularies/Markdown
 
     - name: Vale
       uses: errata-ai/vale-action@reviewdog
