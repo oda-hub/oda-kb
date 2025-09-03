@@ -8,6 +8,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
 
+    - name: Download .vale.ini
+      run: wget https://raw.githubusercontent.com/errata-ai/vale/master/.vale.ini -O .vale.ini
+
     - name: Vale
       uses: errata-ai/vale-action@reviewdog
       with:
