@@ -209,8 +209,6 @@ def stop_stats_collection():
     query_stats=None
 
 def note_stats(**kwargs):
-    global query_stats
-
     if query_stats is not None:
         query_stats.append(kwargs)
 
