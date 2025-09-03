@@ -18,6 +18,7 @@ jobs:
     - name: Vale
       uses: errata-ai/vale-action@reviewdog
       with:
+        version: 2.29.2
         # Optional
         styles: |
           https://github.com/errata-ai/Microsoft/releases/latest/download/Microsoft.zip
