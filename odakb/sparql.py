@@ -112,7 +112,7 @@ def load_defaults(default_prefixes, default_graphs):
     
 
     for ontology_mirror in [
-                    "https://www.isdc.unige.ch/~savchenk/volodymyrss.github.io/",
+                    "https://www.astro.unige.ch/~savchenk/volodymyrss.github.io/",
                     "http://ontology.odahub.io/",
                 ]:
         try:
@@ -209,8 +209,6 @@ def stop_stats_collection():
     query_stats=None
 
 def note_stats(**kwargs):
-    global query_stats
-
     if query_stats is not None:
         query_stats.append(kwargs)
 
