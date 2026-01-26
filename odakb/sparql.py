@@ -17,7 +17,7 @@ import click
 import logging
 
 import odakb.config
-from odakb import version as pkg_version
+from odakb import __version__ as pkg_version
 
 from os import getenv
 
