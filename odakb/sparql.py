@@ -9,7 +9,6 @@ import glob
 import sys
 import yaml
 import rdflib # type: ignore
-import pkg_resources
 import requests
 import typing
 import importlib
@@ -18,6 +17,7 @@ import click
 import logging
 
 import odakb.config
+from odakb import version as pkg_version
 
 from os import getenv
 
@@ -717,7 +717,7 @@ def info():
 
 @cli.command()
 def version():
-    click.echo(pkg_resources.get_distribution("oda-knowledge-base").version)
+    click.echo(pkg_version)
 
 if __name__ == "__main__":
     cli()
