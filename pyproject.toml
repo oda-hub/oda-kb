@@ -28,13 +28,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 dependencies = [
-    "lxml",
-    "six",
-    "coloredlogs",
     "path",
     "minio<7.0.0",
-    "keyring",
-    "keyrings.cryptfile",
     "click",
     "pyyaml",
     "numpy",
