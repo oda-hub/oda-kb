@@ -7,7 +7,7 @@ name = "oda-knowledge-base"
 version = "0.8.0"
 description = "oda-sparql"
 long_description = { file = "README.md" }
-license = "GPL-2+"
+license = " GPL-2.0-or-later"
 authors = [
     { name = "V.S.", email = "vladimir.savchenko@gmail.com" }
 ]
