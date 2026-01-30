@@ -9,10 +9,9 @@ import pprint
 import hashlib
 import logging
 import argparse
-import traceback
 import importlib
 import subprocess
-import pkg_resources
+from importlib.metadata import version
 import odakb.sparql as sp
 import odakb.datalake as dl
 
@@ -148,7 +147,7 @@ def build_local_context(query, origins, callable_kind):
         context[query] = dict()
         context[query]['origin'] = package_name
         context[query]['path'] = package_callable
-        context[query]['version'] = pkg_resources.get_distribution(package_name).version
+        context[query]['version'] = version(package_name)
         context[query]['callable_kind'] = callable_kind
         
 
